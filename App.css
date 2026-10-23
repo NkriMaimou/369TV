@@ -843,8 +843,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .topbar.player-topbar { grid-template-columns: minmax(0, 1fr) auto; }
   .topbar.player-topbar .topbar-actions { grid-column: 2; grid-row: 1; }
   .cinematic-hero { min-height: clamp(600px, calc(100svh - 105px), 850px); align-items: flex-end; padding: 22px; background-position: 59% center; }
-  .cinematic-hero::before { background: linear-gradient(0deg, #090a0f 0%, rgb(9 10 15 / 94%) 38%, rgb(9 10 15 / 25%) 100%); }
-  .cinematic-hero::after { background: linear-gradient(0deg, rgb(9 10 15 / 40%), transparent 68%); }
+  .cinematic-hero::before { background: linear-gradient(0deg, rgb(9 10 15 / 82%) 0%, rgb(9 10 15 / 34%) 36%, rgb(9 10 15 / 5%) 72%, transparent 100%); }
+  .cinematic-hero::after { background: linear-gradient(0deg, rgb(9 10 15 / 18%), transparent 48%); }
   .cinematic-copy { width: 100%; }
   .cinematic-copy h1 { font-size: clamp(32px, 9vw, 44px); }
   .cinematic-actions button { flex: 1 1 0; min-height: 48px; padding-inline: 12px; }
