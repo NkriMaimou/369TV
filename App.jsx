@@ -1041,6 +1041,7 @@ export default function App() {
             </div>}
           </div>
         </form>
+          {query.trim().length >= 2 && !showPlayer && results.length > 0 && <div className="autocomplete-panel" aria-label="Quick search suggestions"><div className="autocomplete-heading">Quick matches <span>{results.length} found</span></div>{results.slice(0, 5).map((item) => <button type="button" className="autocomplete-item" key={`suggest-${type}-${item.id}`} onClick={() => choose(item, type)}><Poster item={item} size="w92" className="autocomplete-poster" /><span><strong>{mediaName(item)}</strong><small>{yearText(item)} · ★ {Number(item.vote_average || 0).toFixed(1)}</small></span><span className="autocomplete-open">Open ›</span></button>)}<button type="button" className="autocomplete-all" onClick={search}>See all search results →</button></div>}
       </div>}
       <div className="topbar-actions">{showPlayer && <button onClick={backToSearch}>Back to library</button>}{!showPlayer && activeTab.startsWith("collection:") && <button type="button" className="collection-delete-top" aria-label="Delete this collection" title="Delete this collection" onClick={() => deleteCollection(activeTab.slice("collection:".length))}>×</button>}</div>
     </header>
@@ -1090,7 +1091,7 @@ export default function App() {
 
       {activeTab === "search" && <>
         <section className="panel home-panel">
-          {query.trim().length >= 2 && !showPlayer && results.length > 0 && <div className="autocomplete-panel" aria-label="Quick search suggestions"><div className="autocomplete-heading">Quick matches <span>{results.length} found</span></div>{results.slice(0, 5).map((item) => <button type="button" className="autocomplete-item" key={`suggest-${type}-${item.id}`} onClick={() => choose(item, type)}><Poster item={item} size="w92" className="autocomplete-poster" /><span><strong>{mediaName(item)}</strong><small>{yearText(item)} · ★ {Number(item.vote_average || 0).toFixed(1)}</small></span><span className="autocomplete-open">Open ›</span></button>)}<button type="button" className="autocomplete-all" onClick={search}>See all search results →</button></div>}
+
           {recentSearches.length > 0 && !query.trim() && homeGenre === "all" && !showFeaturedCarousel && <div className="recent-searches"><span>Recent searches</span>{recentSearches.slice(0, 5).map((term) => <button type="button" key={term} onClick={() => setQuery(term)}>{term}</button>)}<button type="button" className="clear-recents" onClick={() => setRecentSearches([])}>Clear</button></div>}
         {featuredTitle && showFeaturedCarousel && <section
           key={`${featuredType}-${featuredTitle.id}`}
