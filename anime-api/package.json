@@ -1,0 +1,15 @@
+{
+  "name": "369tv-anime-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Node.js API backend for the 369TV anime integration using anime-sdk",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "dependencies": {
+    "anime-sdk": "^1.0.0"
+  }
+}
