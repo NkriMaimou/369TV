@@ -977,6 +977,7 @@ export default function App() {
   }
 
   function renderContinueShelf() {
+    if (continueItems.length === 0) return null;
     return <section className="discovery-section continue-shelf">
       <div className="section-heading"><h2>Continue Watching</h2>{shelfControls("Continue Watching", continueItems.length)}</div>
       {continueItems.length ? <div className="discovery-track" id={shelfId("Continue Watching")}>{continueItems.map((item) => {
