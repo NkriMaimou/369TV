@@ -1026,7 +1026,7 @@ export default function App() {
           <button type="button" className={type === "tv" ? "active" : ""} onClick={() => { setType("tv"); setResults([]); setError(""); }}>TV Shows</button>
         </div></div>
         <form className="searchrow" onSubmit={search}>
-          <input ref={searchInput} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={type === "movie" ? "Search movie titles..." : "Search TV show titles..."} aria-label="Search title" autoComplete="off" />
+          <input ref={searchInput} value={query} onChange={(e) => { setQuery(e.target.value); setShowAllSearchResults(false); }} placeholder={type === "movie" ? "Search movie titles..." : "Search TV show titles..."} aria-label="Search title" autoComplete="off" />
           <button className="primary search-submit" aria-label={loading ? "Searching" : "Search"} title={loading ? "Searching" : "Search"} disabled={loading}><span className="search-button-text">{loading ? "Searching…" : "Search"}</span><span className="search-button-icon" aria-hidden="true">{loading ? "…" : "⌕"}</span></button>
           <div className="settings-menu-wrap">
             <button type="button" className={`settings-menu-trigger${settingsMenuOpen ? " active" : ""}`} aria-label="Open library menu" aria-haspopup="menu" aria-expanded={settingsMenuOpen} title="Library menu" onClick={() => setSettingsMenuOpen((open) => !open)}><span className="menu-bars" aria-hidden="true"><span></span><span></span><span></span></span></button>
