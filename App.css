@@ -1453,12 +1453,12 @@ body { background: var(--background-start, #090a0f); }
 .discovery-card,.library-card { border-radius:var(--card-radius,12px); background:var(--card-color,#101119); }
 .panel,.info-panel,.embedded-player,.episode-selector { background:color-mix(in srgb,#13141c calc(var(--panel-alpha,.94)*100%),transparent); backdrop-filter:blur(var(--panel-blur,8px)); }
 .primary { background:var(--button-color,var(--accent)); border-color:var(--button-color,var(--accent)); }
-:root[data-showtitles="false"] .card-info strong { display:none; }
-:root[data-showratings="false"] .card-info small { display:none; }
-:root[data-hoverEffects="false"] .discovery-card:hover,:root[data-hoverEffects="false"] .library-card:hover { transform:none; filter:none; }
-:root[data-posterZoom="false"] .discovery-card:hover .discovery-poster,:root[data-posterZoom="false"] .library-card:hover .library-poster { transform:none !important; }
-:root[data-cardStyle="backdrop"] .discovery-poster,:root[data-cardStyle="backdrop"] .library-poster { aspect-ratio:16/9; object-fit:cover; }
-:root[data-cardStyle="backdrop"] .discovery-track { grid-auto-columns:minmax(210px,calc(var(--poster-width,164px)*1.65)); }
+:root[data-show-titles="false"] .card-info strong { display:none; }
+:root[data-show-ratings="false"] .card-info small { display:none; }
+:root[data-hover-effects="false"] .discovery-card:hover,:root[data-hover-effects="false"] .library-card:hover { transform:none; filter:none; }
+:root[data-poster-zoom="false"] .discovery-card:hover .discovery-poster,:root[data-poster-zoom="false"] .library-card:hover .library-poster { transform:none !important; }
+:root[data-card-style="backdrop"] .discovery-poster,:root[data-card-style="backdrop"] .library-poster { aspect-ratio:16/9; object-fit:cover; }
+:root[data-card-style="backdrop"] .discovery-track { grid-auto-columns:minmax(210px,calc(var(--poster-width,164px)*1.65)); }
 :root[data-density="compact"] .discovery-section { margin-top:18px; }
 :root[data-density="compact"] .card-info { padding:6px; gap:3px; }
 :root[data-density="spacious"] .discovery-section { margin-top:42px; }
