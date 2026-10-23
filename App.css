@@ -1440,3 +1440,45 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
   .topbar.home-overlay-header .header-search,
   .topbar.home-overlay-header .topbar-actions { transition: none; }
 }
+
+
+/* Provider selections are a normal vertical page grid, not a horizontal shelf. */
+.provider-results-section .provider-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: clamp(12px, 1.8vw, 22px);
+  overflow: visible;
+  padding: 4px 0 20px;
+  scroll-snap-type: none;
+}
+.provider-results-section .provider-results-grid .discovery-card {
+  width: auto;
+  min-width: 0;
+}
+.provider-results-section .provider-results-grid .discovery-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+.provider-results-section .provider-skeleton-grid {
+  display: block;
+  padding-top: 0;
+}
+.provider-results-section .provider-skeleton-grid .skeleton-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: clamp(12px, 1.8vw, 22px);
+  overflow: visible;
+  padding: 4px 0 20px;
+}
+.provider-results-section .provider-skeleton-grid .skeleton-card {
+  width: auto;
+  min-width: 0;
+}
+@media (max-width: 620px) {
+  .provider-results-section .provider-results-grid,
+  .provider-results-section .provider-skeleton-grid .skeleton-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
