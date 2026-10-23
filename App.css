@@ -1305,3 +1305,35 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
     padding-top: 4px;
   }
 }
+
+/* Respect the visible browser viewport and device safe areas.
+   Keep the floating site header inside the page area instead of underneath browser chrome. */
+.app:has(.topbar.home-overlay-header) {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: 0;
+}
+.topbar.home-overlay-header,
+.topbar.home-overlay-header.is-scrolled {
+  top: env(safe-area-inset-top, 0px);
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
+}
+.cinematic-hero.hero-fullbleed {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+@media (max-width: 620px) {
+  .topbar.home-overlay-header,
+  .topbar.home-overlay-header.is-scrolled {
+    top: env(safe-area-inset-top, 0px);
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+  }
+  .cinematic-hero.hero-fullbleed {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
