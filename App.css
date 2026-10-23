@@ -921,7 +921,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background-repeat: no-repeat;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 80ms linear;
+  transition: transform 240ms cubic-bezier(.22,.75,.25,1), opacity 100ms linear;
+  will-change: transform;
 }
 .hero-drag-preview-previous {
   left: 0;
@@ -932,24 +933,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
 }
 .cinematic-copy { position: relative; z-index: 2; }
-.cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; }
+.cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; transition: none; }
 .cinematic-hero {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   touch-action: pan-y;
-  cursor: grab;
+  cursor: default;
   transform: none;
   transition: none;
   will-change: auto;
 }
 .cinematic-hero.hero-is-dragging {
   animation: none !important;
-  cursor: grabbing;
+  cursor: default;
   transform: none;
   transition: none !important;
 }
-.cinematic-hero:active { cursor: grabbing; }
+.cinematic-hero:active { cursor: default; }
 @media (max-width: 560px) {
   .cinematic-hero { padding-bottom: 22px; }
 }
