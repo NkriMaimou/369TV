@@ -90,6 +90,14 @@ export default function App() {
     window.addEventListener("scroll", updateScrollState, { passive: true });
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
+
+  // Open every selected movie or TV show at the top of its detail page.
+  // Keep the saved library position intact so Back can restore browsing exactly where it was.
+  useEffect(() => {
+    if (!showPlayer || !selected) return;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    return () => cancelAnimationFrame(frame);
+  }, [showPlayer, selected]);
   const [type, setType] = useState("movie");
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState(() => { const v = readStore("369-nkri-tv-recent-searches", []); return Array.isArray(v) ? v.slice(0, 8) : []; });
@@ -365,6 +373,7 @@ export default function App() {
     setResults([]);
     setFocusedResultIndex(-1);
     setShowPlayer(true);
+    window.scrollTo({ top: 0, behavior: "instant" });
     setPlaybackStarted(false);
     setError("");
     setSeasons([]);
