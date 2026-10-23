@@ -1291,3 +1291,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
 :root[data-theme="light"] .card-info strong,
 :root[data-theme="light"] .discovery-card strong,
 :root[data-theme="light"] .library-card strong { color: var(--text-main); }
+
+/* Align the floating brand/header closer to the top edge of the webpage. */
+.topbar.home-overlay-header,
+.topbar.home-overlay-header.is-scrolled {
+  top: 0;
+  padding-top: 4px;
+}
+@media (max-width: 620px) {
+  .topbar.home-overlay-header,
+  .topbar.home-overlay-header.is-scrolled {
+    top: 0;
+    padding-top: 4px;
+  }
+}
