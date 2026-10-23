@@ -72,8 +72,9 @@ function Poster({ item, size = "w342", className = "", label }) {
   return <img key={src} className={`${className} poster-loading`} src={src} alt={label || `Poster for ${mediaName(item)}`} loading="lazy" decoding="async" onLoad={(event) => event.currentTarget.classList.remove("poster-loading")} onError={() => setImageFailed(true)} />;
 }
 
-function ShelfSkeleton({ count = 6, genre = false }) {
-  return <div className={`${genre ? "genre-results-track" : "discovery-track"} skeleton-track`} role="status" aria-label="Loading titles">
+function ShelfSkeleton({ count = 6, genre = false, vertical = false }) {
+  const trackClass = vertical ? "provider-results-grid provider-skeleton-grid skeleton-track" : `${genre ? "genre-results-track" : "discovery-track"} skeleton-track`;
+  return <div className={trackClass} role="status" aria-label="Loading titles">
     {Array.from({ length: count }, (_, index) => <div className="skeleton-card" key={index} aria-hidden="true"><div className="skeleton-poster" /><div className="skeleton-line" /><div className="skeleton-line short" /></div>)}
   </div>;
 }
@@ -996,7 +997,7 @@ export default function App() {
           {renderPosterActions(item, itemType)}
         </article>;
       })}</div> : <div className="empty-state">No titles found for this genre.</div>}
-      {shelfLoading[shelfKey] && (shelfKey === "provider" ? <div className="provider-results-grid provider-skeleton-grid" role="status" aria-label="Loading more titles"><ShelfSkeleton count={8} genre /></div> : <p className="genre-loading-more">Loading more titles…</p>)}
+      {shelfLoading[shelfKey] && (shelfKey === "provider" ? <ShelfSkeleton count={8} vertical /> : <p className="genre-loading-more">Loading more titles…</p>)}
     </section>;
   }
 
