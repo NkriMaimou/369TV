@@ -1384,3 +1384,53 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
     padding-top: 14px !important;
   }
 }
+
+
+/* Keep the logo and header controls pinned to the top while scrolling.
+   Preserve the same horizontal layout; only tighten its vertical footprint. */
+.app:has(.topbar.home-overlay-header) .topbar.home-overlay-header,
+.app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+  position: sticky !important;
+  top: 0 !important;
+  inset: auto !important;
+  z-index: 500 !important;
+  margin-top: 0 !important;
+  margin-bottom: -84px !important;
+  padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+  transform-origin: top center;
+  transition: padding 180ms ease, transform 180ms ease;
+}
+.app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+  padding-top: max(5px, env(safe-area-inset-top, 0px)) !important;
+}
+.topbar.home-overlay-header.is-scrolled .brand {
+  transform: scale(.88);
+  transform-origin: left center;
+}
+.topbar.home-overlay-header.is-scrolled .header-search,
+.topbar.home-overlay-header.is-scrolled .topbar-actions {
+  transform: scale(.94);
+  transform-origin: top right;
+}
+.topbar.home-overlay-header .brand,
+.topbar.home-overlay-header .header-search,
+.topbar.home-overlay-header .topbar-actions {
+  transition: transform 180ms ease;
+}
+@media (max-width: 620px) {
+  .app:has(.topbar.home-overlay-header) .topbar.home-overlay-header,
+  .app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+    margin-bottom: -126px !important;
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+  }
+  .app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+    padding-top: max(5px, env(safe-area-inset-top, 0px)) !important;
+  }
+  .topbar.home-overlay-header.is-scrolled .brand { transform: scale(.88); }
+  .topbar.home-overlay-header.is-scrolled .header-search { transform: scale(.94); transform-origin: top center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar.home-overlay-header .brand,
+  .topbar.home-overlay-header .header-search,
+  .topbar.home-overlay-header .topbar-actions { transition: none; }
+}
