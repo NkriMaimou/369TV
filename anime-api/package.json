@@ -10,6 +10,6 @@
     "dev": "node --watch server.mjs"
   },
   "dependencies": {
-    "anime-sdk": "^1.0.0"
+    "anime-sdk": "^1.1.0"
   }
 }
