@@ -443,6 +443,9 @@ export default function App() {
       return;
     }
     const controller = new AbortController();
+    shelfLoadingRef.current.provider = false;
+    shelfExhaustedRef.current.provider = false;
+    setShelfPages((previous) => ({ ...previous, provider: 2 }));
     setProviderTitlesLoading(true);
     setProviderTitlesError("");
     (async () => {
@@ -839,6 +842,8 @@ export default function App() {
         data = await safeFetch(`/trending/tv/day?language=en-US&page=${nextPage}`);
       } else if (shelfKey === "genre" && homeGenre !== "all") {
         data = await safeFetch(`/discover/${type}?with_genres=${encodeURIComponent(homeGenre)}&sort_by=popularity.desc&include_adult=false&language=en-US&page=${nextPage}`);
+      } else if (shelfKey === "provider" && homeProvider !== "all") {
+        data = await safeFetch(`/discover/${type}?with_watch_providers=${encodeURIComponent(homeProvider)}&watch_region=NL&sort_by=popularity.desc&include_adult=false&language=en-US&page=${nextPage}`);
       } else if (shelfKey === "recommendations") {
         const seeds = localRecommendations.slice(0, 4);
         const groups = await Promise.all(seeds.map(async (item) => {
@@ -862,6 +867,7 @@ export default function App() {
         movies: setTrendingMovies,
         tv: setTrendingTvShows,
         genre: setGenreTitles,
+        provider: setProviderTitles,
         recommendations: setPersonalizedRecs,
       }[shelfKey];
 
@@ -869,7 +875,7 @@ export default function App() {
         setter((previous) => {
           const kindFor = (item) => {
             if (item._mediaType === "tv" || item.media_type === "tv" || shelfKey === "tv") return "tv";
-            if (shelfKey === "genre") return type === "tv" ? "tv" : "movie";
+            if (shelfKey === "genre" || shelfKey === "provider") return type === "tv" ? "tv" : "movie";
             return "movie";
           };
           const seen = new Set(previous.map((item) => `${kindFor(item)}:${item.id}`));
