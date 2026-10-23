@@ -105,6 +105,15 @@ export default function App() {
   const [seasons, setSeasons] = useState([]);
   const [episodes, setEpisodes] = useState([]);
   const [server, setServer] = useState("auto");
+  const [openSubtitlesApiKey, setOpenSubtitlesApiKey] = useState(() => {
+    try { return localStorage.getItem("369-nkri-tv-opensubtitles-key") || ""; } catch { return ""; }
+  });
+  const [subtitleLanguage, setSubtitleLanguage] = useState("en");
+  const [subtitleResults, setSubtitleResults] = useState([]);
+  const [subtitleLoading, setSubtitleLoading] = useState(false);
+  const [subtitleError, setSubtitleError] = useState("");
+  const [subtitleSearchMode, setSubtitleSearchMode] = useState("");
+
   const [showPlayer, setShowPlayer] = useState(false);
 
   // Open selected movie and TV detail pages at the top after React renders them.
@@ -724,6 +733,83 @@ export default function App() {
     setServer(value);
     if (selected) setSourcePrefs((current) => ({ ...current, [titleKey]: value }));
   }
+  function saveOpenSubtitlesApiKey(value) {
+    setOpenSubtitlesApiKey(value);
+    try {
+      if (value.trim()) localStorage.setItem("369-nkri-tv-opensubtitles-key", value.trim());
+      else localStorage.removeItem("369-nkri-tv-opensubtitles-key");
+    } catch {}
+  }
+  async function searchOpenSubtitles() {
+    if (!selected) return;
+    if (!openSubtitlesApiKey.trim()) {
+      setSubtitleError("Enter your OpenSubtitles API key to search. It is stored only in this browser.");
+      setSubtitleResults([]);
+      return;
+    }
+    setSubtitleLoading(true);
+    setSubtitleError("");
+    setSubtitleResults([]);
+    setSubtitleSearchMode("");
+    const apiBase = "https://api.opensubtitles.com/api/v1/subtitles";
+    const headers = { "Api-Key": openSubtitlesApiKey.trim(), Accept: "application/json" };
+    const request = async (params) => {
+      const response = await fetch(`${apiBase}?${params.toString()}`, { headers });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) throw new Error("OpenSubtitles rejected the API key or this API key has no access.");
+        if (response.status === 429) throw new Error("OpenSubtitles rate limit reached. Please wait and try again.");
+        throw new Error(`OpenSubtitles returned HTTP ${response.status}.`);
+      }
+      return response.json();
+    };
+    try {
+      const languages = subtitleLanguage || "en";
+      let params;
+      if (type === "tv") {
+        params = new URLSearchParams({
+          episode_number: String(Number(episode)),
+          languages,
+          parent_tmdb_id: String(selected.id),
+          season_number: String(Number(season)),
+          type: "episode",
+        });
+      } else {
+        params = new URLSearchParams({
+          languages,
+          tmdb_id: String(selected.id),
+          type: "movie",
+        });
+      }
+      let data = await request(params);
+      let found = Array.isArray(data.data) ? data.data : [];
+      if (found.length) {
+        setSubtitleSearchMode("TMDB ID match");
+      } else {
+        const fallback = new URLSearchParams({
+          languages,
+          query: (type === "tv" ? mediaName(details || selected) : mediaName(details || selected)).toLowerCase(),
+          type: type === "tv" ? "episode" : "movie",
+        });
+        const year = type === "tv"
+          ? String((episodes.find((item) => Number(item.episode_number) === Number(episode))?.air_date || details?.first_air_date || "").slice(0, 4))
+          : String((details?.release_date || selected.release_date || "").slice(0, 4));
+        if (/^\\d{4}$/.test(year)) fallback.set("year", year);
+        if (type === "tv") {
+          fallback.set("season_number", String(Number(season)));
+          fallback.set("episode_number", String(Number(episode)));
+        }
+        data = await request(fallback);
+        found = Array.isArray(data.data) ? data.data : [];
+        setSubtitleSearchMode(found.length ? "Title/year fallback" : "No matches");
+      }
+      setSubtitleResults(found);
+      if (!found.length) setSubtitleError("No subtitles found for this title, episode, and language. Try another language.");
+    } catch (e) {
+      setSubtitleError(e.message || "Subtitle search failed. Check your connection and API key.");
+    } finally {
+      setSubtitleLoading(false);
+    }
+  }
   function markSubtitleSource() {
     if (!selected || server === "auto") return;
     setSubtitleSources((current) => {
@@ -1241,6 +1327,40 @@ export default function App() {
 
       <div className="playback-layout"><section className="playback-main"><div className="embedded-player" ref={playerSectionRef}><div className="embedded-player-heading"><strong>Player ready: {title}{type === "tv" ? ` · S${season} E${episode}` : ""}</strong></div><div className="player-frame"><iframe key={playerUrl} src={playerUrl} title={`VidNest player: ${title}`} allow="fullscreen; picture-in-picture; encrypted-media; remote-playback" allowFullScreen /></div></div>
         <div className="player-settings"><label htmlFor="server">VidNest server</label><select id="server" value={server} onChange={(e) => chooseServer(e.target.value)}>{SERVERS.map(([value, label]) => <option key={value} value={value}>{label}{value !== "auto" && subtitleSources[titleKey]?.includes(value) ? " · subtitles reported working" : ""}</option>)}</select><div className="source-tools"><button onClick={markSubtitleSource} disabled={server === "auto"}>{subtitleSources[titleKey]?.includes(server) ? "✓ Subtitles reported working" : "Mark subtitles as working"}</button><button onClick={() => trySubtitleSource(false)}>Try another source</button><button onClick={() => trySubtitleSource(true)} disabled={server === "auto"}>Source failed — switch</button><button onClick={resetFailedSources} disabled={!(sourceFailures[titleKey] || []).length}>Reset failed sources</button></div><p className="muted">Your chosen source is remembered for this title. Sources marked as failed are skipped during fallback until reset. Subtitle reports are saved locally; actual subtitle availability cannot be verified by this app.</p></div>
+      </section>
+      <section className="opensubtitles-panel" aria-labelledby="opensubtitles-heading">
+        <div className="section-heading">
+          <div><h2 id="opensubtitles-heading">OpenSubtitles</h2><p className="muted">Search subtitles using the TMDB ID first, then automatically fall back to title and year.</p></div>
+        </div>
+        <div className="opensubtitles-controls">
+          <label className="opensubtitles-key-field">OpenSubtitles API key
+            <input type="password" autoComplete="off" value={openSubtitlesApiKey} onChange={(event) => saveOpenSubtitlesApiKey(event.target.value)} placeholder="Paste your API key" aria-label="OpenSubtitles API key" />
+          </label>
+          <label>Language
+            <select value={subtitleLanguage} onChange={(event) => setSubtitleLanguage(event.target.value)} aria-label="Subtitle language">
+              <option value="en">English</option><option value="nl">Dutch</option><option value="id">Indonesian</option><option value="de">German</option><option value="fr">French</option><option value="es">Spanish</option><option value="it">Italian</option><option value="pt">Portuguese</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh">Chinese</option><option value="ar">Arabic</option><option value="ru">Russian</option>
+            </select>
+          </label>
+          <button type="button" className="primary" onClick={searchOpenSubtitles} disabled={subtitleLoading || !selected}>{subtitleLoading ? "Searching…" : "Search subtitles"}</button>
+        </div>
+        <p className="muted opensubtitles-key-note">Your key is saved in this browser only, not in the GitHub source. For a public deployment, a backend proxy is safer because browser requests expose the key to the browser session.</p>
+        {subtitleError && <p className="opensubtitles-message" role="status">{subtitleError}</p>}
+        {subtitleResults.length > 0 && <div className="opensubtitles-results">
+          <div className="opensubtitles-results-heading"><strong>{subtitleResults.length} subtitle result{subtitleResults.length === 1 ? "" : "s"}</strong><span>{subtitleSearchMode}</span></div>
+          {subtitleResults.slice(0, 20).map((result) => {
+            const attributes = result.attributes || {};
+            const files = Array.isArray(attributes.files) ? attributes.files : [];
+            const fileLabel = files.map((file) => file.file_name).filter(Boolean).join(", ");
+            const subtitleUrl = attributes.url || (attributes.subtitle_id ? `https://www.opensubtitles.com/en/subtitles/${attributes.subtitle_id}` : "");
+            return <article className="opensubtitles-result" key={attributes.subtitle_id || result.id}>
+              <div><strong>{fileLabel || attributes.feature_details?.title || attributes.release || "Subtitle release"}</strong>
+                <small>{String(attributes.language || "Unknown language").toUpperCase()} · {attributes.download_count ?? 0} downloads{attributes.hearing_impaired ? " · Hearing impaired" : ""}{attributes.from_trusted ? " · Trusted uploader" : ""}</small>
+              </div>
+              {subtitleUrl ? <a href={subtitleUrl} target="_blank" rel="noopener noreferrer">Open result ↗</a> : <span className="muted">No result link</span>}
+            </article>;
+          })}
+        </div>}
+        <p className="muted">This searches and links to matching OpenSubtitles results. The current video player is a third-party iframe, so 369TV cannot inject downloaded subtitles into it unless that player supports external subtitle tracks.</p>
       </section>
       {type === "tv" && <section className="episode-selector"><div className="section-heading"><h2>Episode guide</h2><span className="muted">{episodesLoading ? "Loading…" : `${episodes.length} episodes`}</span></div><label htmlFor="season">Season</label><select id="season" value={season} onChange={(e) => { setPlaybackStarted(false); setSeason(e.target.value); }}>{seasons.map((s) => <option key={s.season_number} value={String(s.season_number)}>{s.name || `Season ${s.season_number}`} {s.episode_count != null ? `(${s.episode_count})` : ""}</option>)}</select><div className="episode-list">{episodes.map((ep) => { const watched = Boolean(watchedEpisodes[episodeKey(selected.id, season, ep.episode_number)]); const active = String(ep.episode_number) === episode; return <article className={`episode-item${active ? " active" : ""}${watched ? " watched" : ""}`} key={ep.id || ep.episode_number}><button className="episode-main" onClick={() => { setPlaybackStarted(false); setEpisode(String(ep.episode_number)); }}><span className="episode-still-wrap">{ep.still_path ? <img className="episode-still" src={`${IMAGE}w185${ep.still_path}`} alt="" loading="lazy" /> : <span className="episode-still episode-no-image">E{ep.episode_number}</span>}</span><span className="episode-info"><strong>E{String(ep.episode_number).padStart(2, "0")} · {ep.name || "Untitled episode"}</strong><small>{ep.air_date || "Air date unknown"}{ep.runtime ? ` · ${ep.runtime} min` : ""}{watched ? " · Watched" : ""}</small><span>{ep.overview || "No episode description available."}</span></span></button><button className={`small-icon watched-toggle${watched ? " active" : ""}`} title={watched ? "Mark unwatched" : "Mark watched"} onClick={() => setWatchedEpisodes((current) => ({ ...current, [episodeKey(selected.id, season, ep.episode_number)]: !current[episodeKey(selected.id, season, ep.episode_number)] }))}>{watched ? "✓" : "○"}</button></article>; })}</div><button className="primary next-episode" onClick={goNextEpisode} disabled={!episodes.length}>Mark watched & select next episode →</button></section>}
       </div>
