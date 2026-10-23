@@ -991,7 +991,7 @@ export default function App() {
           key={`${featuredType}-${featuredTitle.id}`}
           className={`cinematic-hero hero-fullbleed hero-slide-enter ${featuredDirection < 0 ? "hero-slide-previous" : "hero-slide-next"}${featuredIsDragging ? " hero-is-dragging" : ""}`}
           style={{
-            backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.97) 0%, rgba(7,8,13,.82) 42%, rgba(7,8,13,.18) 100%), linear-gradient(0deg, #090a0f 0%, transparent 40%), url("${IMAGE}original${featuredTitle.backdrop_path}")`,
+            backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.72) 0%, rgba(7,8,13,.40) 42%, rgba(7,8,13,.05) 100%), linear-gradient(0deg, rgba(9,10,15,.78) 0%, rgba(9,10,15,.08) 48%, transparent 76%), url("${IMAGE}original${featuredTitle.backdrop_path}")`,
             "--hero-drag-x": `${featuredDragX}px`,
           }}
           onPointerDown={(event) => {
