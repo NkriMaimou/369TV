@@ -240,10 +240,10 @@ export default function App() {
 
   // Rotate the featured title every 10 seconds while the homepage hero is visible.
   useEffect(() => {
-    if (!showFeaturedCarousel || featuredItems.length < 2) return;
+    if (!showFeaturedCarousel || featuredItems.length < 2 || featuredIsDragging) return;
     const timer = window.setInterval(() => changeFeatured(1), 10000);
     return () => window.clearInterval(timer);
-  }, [changeFeatured, showFeaturedCarousel]);
+  }, [changeFeatured, showFeaturedCarousel, featuredIsDragging]);
   const continueItems = useMemo(() => [
     ...history.movie.map((item) => ({ ...item, _mediaType: "movie" })),
     ...history.tv.map((item) => ({ ...item, _mediaType: "tv" })),
@@ -1040,11 +1040,18 @@ export default function App() {
           aria-label="Featured movies and TV shows"
         >
           <div className="cinematic-copy"><p className="eyebrow">FEATURED {featuredType === "tv" ? "SERIES" : "MOVIE"}</p><h1>{mediaName(featuredTitle)}</h1><div className="cinematic-meta"><span>★ {Number(featuredTitle.vote_average || 0).toFixed(1)} / 10</span><span>{yearText(featuredTitle)}</span><span>{featuredType === "tv" ? "TV Series" : "Movie"}</span></div><p className="cinematic-overview">{featuredTitle.overview || "Discover your next favorite on 369 NKRI TV."}</p><div className="cinematic-actions"><button className="primary" onClick={() => { choose(featuredTitle, featuredType); setPlaybackStarted(true); }}>▶ Play now</button><button className="hero-secondary" onClick={() => choose(featuredTitle, featuredType)}>More details</button></div></div>
-          {featuredItems.length > 1 && <div className="hero-carousel-controls" aria-label="Featured title controls">
-            <button type="button" className="hero-carousel-arrow" aria-label="Previous featured title" onClick={() => changeFeatured(-1)}>‹</button>
-            <span className="hero-slide-count" aria-live="polite">{activeFeaturedIndex + 1} / {featuredItems.length}</span>
-            <button type="button" className="hero-carousel-arrow" aria-label="Next featured title" onClick={() => changeFeatured(1)}>›</button>
-          </div>}
+          {featuredItems.length > 1 && <>
+            <div
+              className="hero-drag-preview hero-drag-preview-previous"
+              aria-hidden="true"
+              style={{ backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.97) 0%, rgba(7,8,13,.82) 42%, rgba(7,8,13,.18) 100%), linear-gradient(0deg, #090a0f 0%, transparent 40%), url("${IMAGE}original${featuredItems[(activeFeaturedIndex - 1 + featuredItems.length) % featuredItems.length].backdrop_path}")` }}
+            />
+            <div
+              className="hero-drag-preview hero-drag-preview-next"
+              aria-hidden="true"
+              style={{ backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.97) 0%, rgba(7,8,13,.82) 42%, rgba(7,8,13,.18) 100%), linear-gradient(0deg, #090a0f 0%, transparent 40%), url("${IMAGE}original${featuredItems[(activeFeaturedIndex + 1) % featuredItems.length].backdrop_path}")` }}
+            />
+          </>}
         </section>}
           {results.length > 0 && <section className="search-results"><div className="section-heading"><h2>Search results</h2><span className="muted">{filteredResults.length} of {results.length} titles</span></div><div className="discovery-filters" aria-label="Advanced discovery filters"><label>Genre<select value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)}><option value="all">All genres</option>{genreOptions.map((genre) => <option key={genre.id} value={genre.id}>{genre.name}</option>)}</select></label><label>Release year<input inputMode="numeric" pattern="[0-9]*" placeholder="Any year" value={filterYear} onChange={(e) => setFilterYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))} /></label><label>Minimum rating<select value={minRating} onChange={(e) => setMinRating(e.target.value)}><option value="0">Any rating</option><option value="5">5+ / 10</option><option value="6">6+ / 10</option><option value="7">7+ / 10</option><option value="8">8+ / 10</option></select></label><label>Sort by<select value={sortBy} onChange={(e) => setSortBy(e.target.value)}><option value="relevance">Default order</option><option value="popularity">Popularity</option><option value="rating">Highest rating</option><option value="year-new">Newest year</option><option value="year-old">Oldest year</option><option value="title">Title A–Z</option></select></label><button onClick={() => { setFilterGenre("all"); setFilterYear(""); setMinRating("0"); setSortBy("relevance"); }}>Reset filters</button><button type="button" onClick={() => { if (filteredResults.length) choose(filteredResults[Math.floor(Math.random() * filteredResults.length)], type); }} disabled={!filteredResults.length}>🎲 Surprise me</button></div><div className="results-list">{filteredResults.map((item, index) => <article className="result-row" key={item.id}><button className="result" data-search-result-index={index} onClick={() => choose(item, type)}><Poster item={item} size="w185" className="result-poster" /><span className="result-info"><strong>{mediaName(item)}</strong><small>{yearText(item)} · TMDB {item.id} · ★ {Number(item.vote_average || 0).toFixed(1)}</small><span>{item.overview || "No description available."}</span></span></button><button className={`small-icon${isFavorite(item, type) ? " active" : ""}`} title="Toggle favorite" onClick={() => toggleFavorite(item, type)}>{isFavorite(item, type) ? "★" : "☆"}</button><button className={`small-icon${isInWatchlist(item, type) ? " active" : ""}`} title="Toggle watchlist" onClick={() => toggleWatchlist(item, type)}>{isInWatchlist(item, type) ? "✓" : "+"}</button></article>)}</div>{filteredResults.length === 0 && <div className="empty-state">No titles match these filters. Try changing or resetting them.</div>}</section>}
         {error && <p className="error">{error}</p>}
