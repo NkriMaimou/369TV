@@ -1034,7 +1034,7 @@ export default function App() {
               event.currentTarget.style.setProperty("--hero-drag-x", "0px");
             }
           }}
-          onLostPointerCapture={() => {
+          onLostPointerCapture={(event) => {
             if (heroTouchStart.current) {
               heroTouchStart.current = null;
               setFeaturedIsDragging(false);
