@@ -153,6 +153,52 @@ export default function App() {
   const [providerTitlesError, setProviderTitlesError] = useState("");
   const heroTouchStart = useRef(null);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const appearanceFileInput = useRef(null);
+  const DEFAULT_APPEARANCE = { theme: "dark", accent: "#ef4444", contrast: "standard" };
+  const [appearance, setAppearance] = useState(() => {
+    const saved = readStore("369-nkri-tv-appearance", {});
+    return {
+      theme: ["dark", "amoled", "light"].includes(saved?.theme) ? saved.theme : DEFAULT_APPEARANCE.theme,
+      accent: typeof saved?.accent === "string" && /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent : DEFAULT_APPEARANCE.accent,
+      contrast: ["low", "standard", "high"].includes(saved?.contrast) ? saved.contrast : DEFAULT_APPEARANCE.contrast,
+    };
+  });
+  const updateAppearance = (patch) => setAppearance((current) => ({ ...current, ...patch }));
+  const resetAppearance = () => setAppearance({ ...DEFAULT_APPEARANCE });
+  const exportAppearance = () => {
+    const blob = new Blob([JSON.stringify({ version: 1, appearance }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "369-nkri-tv-preferences.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const importAppearance = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ""));
+        const value = parsed.appearance || parsed;
+        if (!["dark", "amoled", "light"].includes(value.theme) || !/^#[0-9a-f]{6}$/i.test(value.accent) || !["low", "standard", "high"].includes(value.contrast)) throw new Error("Invalid preferences");
+        setAppearance({ theme: value.theme, accent: value.accent, contrast: value.contrast });
+        setError("");
+      } catch {
+        setError("That preferences file is invalid. Choose a 369 NKRI TV preferences JSON file.");
+      }
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+  useEffect(() => {
+    try { localStorage.setItem("369-nkri-tv-appearance", JSON.stringify(appearance)); } catch {}
+    document.documentElement.dataset.theme = appearance.theme;
+    document.documentElement.dataset.contrast = appearance.contrast;
+    document.documentElement.style.setProperty("--accent", appearance.accent);
+  }, [appearance]);
   const [genreTitles, setGenreTitles] = useState([]);
   const [genreTitlesLoading, setGenreTitlesLoading] = useState(false);
   const [genreTitlesError, setGenreTitlesError] = useState("");
@@ -973,6 +1019,7 @@ export default function App() {
               {customCollections.length > 0 && <div className="settings-menu-divider" role="separator" />}
               {customCollections.map((list) => <button type="button" role="menuitem" key={list.id} className={`settings-menu-item collection-menu-item${activeTab === `collection:${list.id}` ? " active" : ""}`} onClick={() => { setActiveTab(`collection:${list.id}`); setSettingsMenuOpen(false); }}>{list.name}<span>{list.items.length}</span></button>)}
               <div className="settings-menu-divider" role="separator" />
+              <button type="button" role="menuitem" className="settings-menu-item" onClick={() => { setAppearanceOpen(true); setSettingsMenuOpen(false); setError(""); }}><span aria-hidden="true">◐</span> Appearance &amp; preferences</button>
               <button type="button" role="menuitem" className="settings-menu-item settings-create-item" onClick={() => { setCollectionDraft(""); setError(""); setSettingsMenuOpen(false); setCollectionModalOpen(true); }}><span className="settings-create-plus" aria-hidden="true">+</span> Create collection</button>
             </div>}
           </div>
@@ -982,6 +1029,46 @@ export default function App() {
     </header>
 
     {!showPlayer && <>
+      {appearanceOpen && <div className="collection-modal-backdrop appearance-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAppearanceOpen(false); }}>
+        <section className="collection-modal appearance-modal" role="dialog" aria-modal="true" aria-labelledby="appearance-title">
+          <button type="button" className="collection-modal-close" aria-label="Close appearance settings" onClick={() => setAppearanceOpen(false)}>×</button>
+          <p className="eyebrow">PERSONALIZE YOUR EXPERIENCE</p>
+          <h2 id="appearance-title">Appearance &amp; preferences</h2>
+          <p className="appearance-intro">These settings are saved only in this browser on this device. They won't change the app for other people.</p>
+          <section className="appearance-group" aria-labelledby="appearance-theme-label">
+            <h3 id="appearance-theme-label">Theme</h3>
+            <div className="appearance-choice-grid">
+              {[["dark", "Dark", "Classic dark interface"], ["amoled", "AMOLED", "Deep black backgrounds"], ["light", "Light", "Bright interface"]].map(([value, label, description]) => <button key={value} type="button" className={appearance.theme === value ? "appearance-choice selected" : "appearance-choice"} aria-pressed={appearance.theme === value} onClick={() => updateAppearance({ theme: value })}><span className={`appearance-swatch theme-swatch-${value}`} /><strong>{label}</strong><small>{description}</small></button>)}
+            </div>
+          </section>
+          <section className="appearance-group" aria-labelledby="appearance-accent-label">
+            <h3 id="appearance-accent-label">Accent color</h3>
+            <div className="appearance-accent-options">
+              {[["#ef4444", "Red"], ["#a855f7", "Purple"], ["#3b82f6", "Blue"], ["#22c55e", "Green"]].map(([value, label]) => <button key={value} type="button" className={appearance.accent.toLowerCase() === value ? "accent-option selected" : "accent-option"} aria-label={label} title={label} aria-pressed={appearance.accent.toLowerCase() === value} style={{ "--choice-accent": value }} onClick={() => updateAppearance({ accent: value })}><span /></button>)}
+              <label className="custom-accent"><span>Custom</span><input type="color" value={appearance.accent} aria-label="Choose custom accent color" onChange={(event) => updateAppearance({ accent: event.target.value })} /></label>
+              <span className="appearance-accent-value">{appearance.accent.toUpperCase()}</span>
+            </div>
+          </section>
+          <section className="appearance-group" aria-labelledby="appearance-contrast-label">
+            <h3 id="appearance-contrast-label">Interface contrast</h3>
+            <div className="appearance-segmented" role="group" aria-labelledby="appearance-contrast-label">
+              {[["low", "Soft"], ["standard", "Standard"], ["high", "High"]].map(([value, label]) => <button key={value} type="button" className={appearance.contrast === value ? "selected" : ""} aria-pressed={appearance.contrast === value} onClick={() => updateAppearance({ contrast: value })}>{label}</button>)}
+            </div>
+            <p className="appearance-help">Higher contrast strengthens borders and text for readability.</p>
+          </section>
+          <section className="appearance-group" aria-labelledby="appearance-data-label">
+            <h3 id="appearance-data-label">Preferences backup</h3>
+            <p className="appearance-help">Export your appearance choices to a file, or import a previously exported file.</p>
+            <div className="appearance-data-actions">
+              <button type="button" onClick={exportAppearance}>Export preferences</button>
+              <button type="button" onClick={() => appearanceFileInput.current?.click()}>Import preferences</button>
+              <input ref={appearanceFileInput} className="appearance-file-input" type="file" accept="application/json,.json" aria-label="Import preferences JSON file" onChange={importAppearance} />
+            </div>
+          </section>
+          {error && <p className="error appearance-error" role="alert">{error}</p>}
+          <div className="appearance-footer"><button type="button" onClick={resetAppearance}>Reset to defaults</button><button type="button" className="primary" onClick={() => setAppearanceOpen(false)}>Done</button></div>
+        </section>
+      </div>}
       {collectionModalOpen && <div className="collection-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCollectionModalOpen(false); }}><section className="collection-modal" role="dialog" aria-modal="true" aria-labelledby="new-collection-title"><button type="button" className="collection-modal-close" aria-label="Close" onClick={() => setCollectionModalOpen(false)}>×</button><h2 id="new-collection-title">New collection</h2><p>Name your collection to add it to the library menu.</p><form className="collection-create" onSubmit={createCollection}><input autoFocus value={collectionDraft} onChange={(event) => setCollectionDraft(event.target.value)} placeholder="Collection name" aria-label="Collection name" maxLength={60} required /><div className="collection-modal-actions"><button type="button" onClick={() => setCollectionModalOpen(false)}>Cancel</button><button className="primary" type="submit">Create</button></div></form>{error && <p className="error">{error}</p>}</section></div>}
 
       {activeTab === "search" && <>
