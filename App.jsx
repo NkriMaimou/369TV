@@ -91,13 +91,6 @@ export default function App() {
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
 
-  // Open every selected movie or TV show at the top of its detail page.
-  // Keep the saved library position intact so Back can restore browsing exactly where it was.
-  useEffect(() => {
-    if (!showPlayer || !selected) return;
-    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    return () => cancelAnimationFrame(frame);
-  }, [showPlayer, selected]);
   const [type, setType] = useState("movie");
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState(() => { const v = readStore("369-nkri-tv-recent-searches", []); return Array.isArray(v) ? v.slice(0, 8) : []; });
@@ -110,6 +103,14 @@ export default function App() {
   const [episodes, setEpisodes] = useState([]);
   const [server, setServer] = useState("auto");
   const [showPlayer, setShowPlayer] = useState(false);
+
+  // Open selected movie and TV detail pages at the top after React renders them.
+  // The homepage scroll position is stored separately for back navigation.
+  useEffect(() => {
+    if (!showPlayer || !selected) return;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    return () => cancelAnimationFrame(frame);
+  }, [showPlayer, selected]);
   const [playbackStarted, setPlaybackStarted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
