@@ -125,6 +125,8 @@ export default function App() {
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [featuredDirection, setFeaturedDirection] = useState(1);
   const [featuredIsDragging, setFeaturedIsDragging] = useState(false);
+  const [featuredIsSettling, setFeaturedIsSettling] = useState(false);
+  const featuredSettleTimer = useRef(null);
   const [shelfPages, setShelfPages] = useState({ now: 1, movies: 1, tv: 1, genre: 3, recommendations: 1 });
   const [shelfLoading, setShelfLoading] = useState({});
   const shelfLoadingRef = useRef({});
@@ -239,10 +241,10 @@ export default function App() {
 
   // Rotate the featured title every 10 seconds while the homepage hero is visible.
   useEffect(() => {
-    if (!showFeaturedCarousel || featuredItems.length < 2 || featuredIsDragging) return;
+    if (!showFeaturedCarousel || featuredItems.length < 2 || featuredIsDragging || featuredIsSettling) return;
     const timer = window.setInterval(() => changeFeatured(1), 10000);
     return () => window.clearInterval(timer);
-  }, [changeFeatured, showFeaturedCarousel, featuredIsDragging]);
+  }, [changeFeatured, showFeaturedCarousel, featuredIsDragging, featuredIsSettling]);
   const continueItems = useMemo(() => [
     ...history.movie.map((item) => ({ ...item, _mediaType: "movie" })),
     ...history.tv.map((item) => ({ ...item, _mediaType: "tv" })),
@@ -988,7 +990,7 @@ export default function App() {
           {recentSearches.length > 0 && !query.trim() && homeGenre === "all" && !showFeaturedCarousel && <div className="recent-searches"><span>Recent searches</span>{recentSearches.slice(0, 5).map((term) => <button type="button" key={term} onClick={() => setQuery(term)}>{term}</button>)}<button type="button" className="clear-recents" onClick={() => setRecentSearches([])}>Clear</button></div>}
         {featuredTitle && showFeaturedCarousel && <section
           key={`${featuredType}-${featuredTitle.id}`}
-          className={`cinematic-hero hero-fullbleed hero-slide-enter ${featuredDirection < 0 ? "hero-slide-previous" : "hero-slide-next"}${featuredIsDragging ? " hero-is-dragging" : ""}`}
+          className={`cinematic-hero hero-fullbleed hero-slide-enter ${featuredDirection < 0 ? "hero-slide-previous" : "hero-slide-next"}${featuredIsDragging ? " hero-is-dragging" : ""}${featuredIsSettling ? " hero-is-settling" : ""}`}
           style={{ "--hero-drag-x": "0px" }}
           onPointerDown={(event) => {
             if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -1025,9 +1027,17 @@ export default function App() {
             const deltaX = event.clientX - start.x;
             const deltaY = event.clientY - start.y;
             const threshold = Math.max(36, start.width * 0.08);
-            if (Math.abs(deltaX) >= threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-              event.currentTarget.style.setProperty("--hero-drag-x", "0px");
-              changeFeatured(deltaX < 0 ? 1 : -1);
+            if (start.dragging && Math.abs(deltaX) >= threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+              const direction = deltaX < 0 ? 1 : -1;
+              // Let the current slide and its neighbor finish sliding together before swapping data.
+              setFeaturedIsSettling(true);
+              event.currentTarget.style.setProperty("--hero-drag-x", `${direction > 0 ? -start.width : start.width}px`);
+              if (featuredSettleTimer.current) window.clearTimeout(featuredSettleTimer.current);
+              featuredSettleTimer.current = window.setTimeout(() => {
+                changeFeatured(direction);
+                setFeaturedIsSettling(false);
+                featuredSettleTimer.current = null;
+              }, 150);
             } else {
               event.currentTarget.style.setProperty("--hero-drag-x", "0px");
             }
