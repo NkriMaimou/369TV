@@ -1276,3 +1276,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
   .appearance-choice small { grid-column: 2; }
   .appearance-modal { max-height: 90vh; }
 }
+:root[data-theme="light"] { background: #f4f5f8; }
+:root[data-theme="amoled"] { background: #000; }
+:root[data-theme="dark"] { background: #090a0f; }
+:root[data-theme="light"] .app { background: var(--surface-page); }
+:root[data-theme="light"] .settings-menu-item:hover,
+:root[data-theme="light"] .settings-menu-item.active { background: #e8eaf1; }
+:root[data-theme="light"] .result,
+:root[data-theme="light"] .autocomplete-panel,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .recent-searches { color: var(--text-main); background: var(--surface-panel); border-color: var(--surface-border); }
+:root[data-theme="light"] .result-info small,
+:root[data-theme="light"] .result-info > span { color: var(--text-muted); }
+:root[data-theme="light"] .card-info strong,
+:root[data-theme="light"] .discovery-card strong,
+:root[data-theme="light"] .library-card strong { color: var(--text-main); }
