@@ -473,7 +473,7 @@ export default function App() {
 
   // Provider results use a vertical poster grid. Load another TMDB page near the bottom.
   useEffect(() => {
-    if (homeProvider === "all" || activeTab !== "search" || showPlayer) return;
+    if (homeProvider === "all" || activeTab !== "search" || showPlayer || providerTitlesLoading || providerTitlesError) return;
     const checkProviderEnd = () => {
       const section = document.querySelector(".provider-results-section");
       if (section && section.getBoundingClientRect().bottom < window.innerHeight + 650) {
@@ -487,7 +487,7 @@ export default function App() {
       window.removeEventListener("scroll", checkProviderEnd);
       window.removeEventListener("resize", checkProviderEnd);
     };
-  }, [homeProvider, activeTab, showPlayer, providerTitles.length, providerTitlesLoading, shelfLoading.provider]);
+  }, [homeProvider, activeTab, showPlayer, providerTitles.length, providerTitlesLoading, providerTitlesError, shelfLoading.provider]);
 
   // Close either filter menu when users tap/click outside it or press Escape.
   useEffect(() => {
