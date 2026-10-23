@@ -989,9 +989,7 @@ export default function App() {
         {featuredTitle && showFeaturedCarousel && <section
           key={`${featuredType}-${featuredTitle.id}`}
           className={`cinematic-hero hero-fullbleed hero-slide-enter ${featuredDirection < 0 ? "hero-slide-previous" : "hero-slide-next"}${featuredIsDragging ? " hero-is-dragging" : ""}`}
-          style={{
-            backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.72) 0%, rgba(7,8,13,.40) 42%, rgba(7,8,13,.05) 100%), linear-gradient(0deg, rgba(9,10,15,.78) 0%, rgba(9,10,15,.08) 48%, transparent 76%), url("${IMAGE}original${featuredTitle.backdrop_path}")`,
-          }}
+          style={{ "--hero-drag-x": "0px" }}
           onPointerDown={(event) => {
             if (event.pointerType === "mouse" && event.button !== 0) return;
             if (event.target.closest?.("button, a, input, select, textarea")) { heroTouchStart.current = null; return; }
@@ -1045,6 +1043,11 @@ export default function App() {
           aria-roledescription="carousel"
           aria-label="Featured movies and TV shows"
         >
+          <div
+            className="hero-current-backdrop"
+            aria-hidden="true"
+            style={{ backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.72) 0%, rgba(7,8,13,.40) 42%, rgba(7,8,13,.05) 100%), linear-gradient(0deg, rgba(9,10,15,.78) 0%, rgba(9,10,15,.08) 48%, transparent 76%), url("${IMAGE}original${featuredTitle.backdrop_path}")` }}
+          />
           <div className="cinematic-copy"><p className="eyebrow">FEATURED {featuredType === "tv" ? "SERIES" : "MOVIE"}</p><h1>{mediaName(featuredTitle)}</h1><div className="cinematic-meta"><span>★ {Number(featuredTitle.vote_average || 0).toFixed(1)} / 10</span><span>{yearText(featuredTitle)}</span><span>{featuredType === "tv" ? "TV Series" : "Movie"}</span></div><p className="cinematic-overview">{featuredTitle.overview || "Discover your next favorite on 369 NKRI TV."}</p><div className="cinematic-actions"><button className="primary" onClick={() => { choose(featuredTitle, featuredType); setPlaybackStarted(true); }}>▶ Play now</button><button className="hero-secondary" onClick={() => choose(featuredTitle, featuredType)}>More details</button></div></div>
           {featuredItems.length > 1 && <>
             <div
