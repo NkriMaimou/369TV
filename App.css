@@ -1337,3 +1337,32 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
     min-height: 100dvh;
   }
 }
+
+/* Normal-browser layout: keep the site's logo/header in document flow at the
+   top of the page content, below browser chrome, while letting the hero extend
+   behind it to remain cinematic. Avoid absolute positioning that can make the
+   header appear clipped or tucked under browser UI. */
+.app:has(.topbar.home-overlay-header) {
+  padding-top: 0;
+}
+.topbar.home-overlay-header,
+.topbar.home-overlay-header.is-scrolled {
+  position: relative;
+  inset: auto;
+  z-index: 200;
+  width: auto;
+  margin-bottom: -84px;
+  padding-top: 12px;
+}
+.cinematic-hero.hero-fullbleed {
+  margin-top: 0;
+}
+@media (max-width: 620px) {
+  .topbar.home-overlay-header,
+  .topbar.home-overlay-header.is-scrolled {
+    position: relative;
+    inset: auto;
+    margin-bottom: -126px;
+    padding-top: 12px;
+  }
+}
