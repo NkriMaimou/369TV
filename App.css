@@ -908,54 +908,49 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   from { opacity: .72; transform: translate3d(-3.5%, 0, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-.hero-carousel-controls {
+/* Adjacent featured backdrops slide into view during mouse or touch dragging. */
+.hero-drag-preview {
   position: absolute;
-  z-index: 2;
-  right: 20px;
-  bottom: 54px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 999px;
-  background: rgb(7 8 13 / 72%);
-  backdrop-filter: blur(12px);
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  border: 0;
+  background-size: cover;
+  background-position: center 28%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 80ms linear;
 }
-.hero-carousel-arrow {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 0 3px;
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 8%);
-  font-size: 27px;
-  line-height: 1;
+.hero-drag-preview-previous {
+  right: 100%;
+  transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
 }
-.hero-carousel-arrow:hover { background: rgb(239 68 68 / 35%); }
-.hero-slide-count { min-width: 48px; color: #f0f0f5; font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.hero-drag-preview-next {
+  left: 100%;
+  transform: translate3d(calc(-100% + var(--hero-drag-x, 0px)), 0, 0);
+}
+.cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; }
 .cinematic-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   touch-action: pan-y;
-  cursor: default;
-  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
-  transition: transform 260ms cubic-bezier(.22,.75,.25,1);
-  will-change: transform;
+  cursor: grab;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
-/* During a drag, the hero follows the pointer 1:1 with no easing or animation lag. */
 .cinematic-hero.hero-is-dragging {
   animation: none !important;
-  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
+  cursor: grabbing;
+  transform: none;
   transition: none !important;
 }
-.cinematic-hero:active { cursor: default; }
+.cinematic-hero:active { cursor: grabbing; }
 @media (max-width: 560px) {
-  .hero-carousel-controls { right: 12px; bottom: 12px; gap: 5px; }
-  .hero-carousel-arrow { width: 32px; height: 32px; min-height: 32px; }
-  .hero-slide-count { min-width: 42px; }
-  .cinematic-hero { padding-bottom: 58px; }
+  .cinematic-hero { padding-bottom: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-slide-enter { animation: none; }
