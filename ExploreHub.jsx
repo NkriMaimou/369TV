@@ -56,7 +56,7 @@ export default function ExploreHub({ tmdbFetch, choose, selected, type, initialP
   useEffect(() => {
     if (!initialPerson?.id) return;
     setTab("people");
-    setPerson(initialPerson);
+    openPerson(initialPerson);
     setEntity(null);
     setResults([]);
     setQuery(initialPerson.name || "");
