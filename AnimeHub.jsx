@@ -11,7 +11,7 @@ const PROVIDERS = [
 ];
 
 const titleOf = (item) => item?.title?.english || item?.title?.romaji || item?.title || item?.name || item?.id || "Untitled";
-const posterOf = (item) => item?.poster || item?.image || item?.coverImage?.large || item?.coverImage?.medium || "";
+const posterOf = (item) => item?.thumbnailUrl || item?.poster || item?.image || item?.coverImage?.large || item?.coverImage?.medium || "";
 
 export default function AnimeHub() {
   const [query, setQuery] = useState("");
