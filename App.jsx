@@ -124,7 +124,6 @@ export default function App() {
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [featuredDirection, setFeaturedDirection] = useState(1);
-  const [featuredDragX, setFeaturedDragX] = useState(0);
   const [featuredIsDragging, setFeaturedIsDragging] = useState(false);
   const [shelfPages, setShelfPages] = useState({ now: 1, movies: 1, tv: 1, genre: 3, recommendations: 1 });
   const [shelfLoading, setShelfLoading] = useState({});
@@ -992,13 +991,12 @@ export default function App() {
           className={`cinematic-hero hero-fullbleed hero-slide-enter ${featuredDirection < 0 ? "hero-slide-previous" : "hero-slide-next"}${featuredIsDragging ? " hero-is-dragging" : ""}`}
           style={{
             backgroundImage: `linear-gradient(90deg, rgba(7,8,13,.72) 0%, rgba(7,8,13,.40) 42%, rgba(7,8,13,.05) 100%), linear-gradient(0deg, rgba(9,10,15,.78) 0%, rgba(9,10,15,.08) 48%, transparent 76%), url("${IMAGE}original${featuredTitle.backdrop_path}")`,
-            "--hero-drag-x": `${featuredDragX}px`,
           }}
           onPointerDown={(event) => {
             if (event.pointerType === "mouse" && event.button !== 0) return;
             if (event.target.closest?.("button, a, input, select, textarea")) { heroTouchStart.current = null; return; }
-            heroTouchStart.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, width: event.currentTarget.getBoundingClientRect().width };
-            setFeaturedIsDragging(true);
+            heroTouchStart.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, width: event.currentTarget.getBoundingClientRect().width, dragging: false };
+            event.currentTarget.style.setProperty("--hero-drag-x", "0px");
             event.currentTarget.setPointerCapture?.(event.pointerId);
           }}
           onPointerMove={(event) => {
@@ -1006,36 +1004,44 @@ export default function App() {
             if (!start || start.pointerId !== event.pointerId) return;
             const deltaX = event.clientX - start.x;
             const deltaY = event.clientY - start.y;
-            if (Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && Math.abs(deltaY) > 8) return;
-            // Render the exact horizontal pointer delta: no easing, scaling, or resistance while dragging.
-            setFeaturedDragX(deltaX);
+            // Let vertical gestures scroll normally; only claim the gesture once horizontal intent is clear.
+            if (Math.abs(deltaY) > Math.abs(deltaX) * 1.15 && Math.abs(deltaY) > 6) {
+              if (!start.dragging) return;
+            }
+            if (!start.dragging) {
+              if (Math.abs(deltaX) < 4 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+              start.dragging = true;
+              setFeaturedIsDragging(true);
+            }
+            // Update the drag position directly on the element to avoid rerendering the whole app per pointer event.
+            event.currentTarget.style.setProperty("--hero-drag-x", `${deltaX}px`);
           }}
           onPointerUp={(event) => {
             const start = heroTouchStart.current;
             heroTouchStart.current = null;
             setFeaturedIsDragging(false);
             if (!start || start.pointerId !== event.pointerId || featuredItems.length < 2) {
-              setFeaturedDragX(0);
+              event.currentTarget.style.setProperty("--hero-drag-x", "0px");
               return;
             }
             const deltaX = event.clientX - start.x;
             const deltaY = event.clientY - start.y;
-            const threshold = Math.max(48, start.width * 0.12);
+            const threshold = Math.max(36, start.width * 0.08);
             if (Math.abs(deltaX) >= threshold && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-              setFeaturedDragX(0);
+              event.currentTarget.style.setProperty("--hero-drag-x", "0px");
               changeFeatured(deltaX < 0 ? 1 : -1);
             } else {
-              setFeaturedDragX(0);
+              event.currentTarget.style.setProperty("--hero-drag-x", "0px");
             }
           }}
           onLostPointerCapture={() => {
             if (heroTouchStart.current) {
               heroTouchStart.current = null;
               setFeaturedIsDragging(false);
-              setFeaturedDragX(0);
+              event.currentTarget.style.setProperty("--hero-drag-x", "0px");
             }
           }}
-          onPointerCancel={() => { heroTouchStart.current = null; setFeaturedIsDragging(false); setFeaturedDragX(0); }}
+          onPointerCancel={(event) => { heroTouchStart.current = null; setFeaturedIsDragging(false); event.currentTarget.style.setProperty("--hero-drag-x", "0px"); }}
           aria-roledescription="carousel"
           aria-label="Featured movies and TV shows"
         >
