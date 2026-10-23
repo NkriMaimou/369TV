@@ -1013,7 +1013,7 @@ export default function App() {
               start.dragging = true;
               setFeaturedIsDragging(true);
             }
-            // Update the drag position directly on the element to avoid rerendering the whole app per pointer event.
+            // Move the hero content and backdrop with the pointer without rerendering the app per frame.
             event.currentTarget.style.setProperty("--hero-drag-x", `${deltaX}px`);
           }}
           onPointerUp={(event) => {
