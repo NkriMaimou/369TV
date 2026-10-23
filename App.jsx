@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
@@ -165,7 +165,11 @@ export default function App() {
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const appearanceFileInput = useRef(null);
-  const DEFAULT_APPEARANCE = { theme: "dark", accent: "#ef4444", contrast: "standard" };
+  const DEFAULT_APPEARANCE = { theme:"dark", accent:"#ef4444", contrast:"standard", density:"comfortable", posterSize:164, cardSpacing:14, cornerRadius:12, showTitles:true, showRatings:true, showYears:true, background:"#090a0f", backgroundEnd:"#15111d", backgroundMode:"gradient", panelBlur:8, panelTransparency:94, secondary:"#a855f7", buttonColor:"#ef4444", cardColor:"#101119", highlightColor:"#fecaca", fontSize:100, animation:"subtle", hoverEffects:true, posterZoom:true, reducedMotion:false, showHero:true, cardStyle:"poster", defaultTab:"search", homeSections:["now","continue","movies","tv","recommendations"], homeOrder:["now","continue","movies","tv","recommendations"] };
+  const [appearance, setAppearance] = useState(() => ({ ...DEFAULT_APPEARANCE, ...readStore("369-nkri-tv-appearance", {}) }));
+  const updateAppearance = (patch) => setAppearance((current) => ({ ...current, ...patch }));
+  const resetAppearance = () => setAppearance({ ...DEFAULT_APPEARANCE });
+  const moveHomeSection = (key, direction) => setAppearance((current) => { const order=[...current.homeOrder]; const i=order.indexOf(key), j=i+direction; if(i<0||j<0||j>=order.length)return current; [order[i],order[j]]=[order[j],order[i]]; return {...current,homeOrder:order}; });
   const [appearance, setAppearance] = useState(() => {
     const saved = readStore("369-nkri-tv-appearance", {});
     return {
@@ -207,7 +211,11 @@ export default function App() {
     try { localStorage.setItem("369-nkri-tv-appearance", JSON.stringify(appearance)); } catch {}
     document.documentElement.dataset.theme = appearance.theme;
     document.documentElement.dataset.contrast = appearance.contrast;
-    document.documentElement.style.setProperty("--accent", appearance.accent);
+    const root=document.documentElement;
+    root.dataset.theme=appearance.theme; root.dataset.contrast=appearance.contrast; root.dataset.density=appearance.density; root.dataset.animation=appearance.reducedMotion?"off":appearance.animation; root.dataset.cardStyle=appearance.cardStyle;
+    const vars={"--accent":appearance.accent,"--secondary":appearance.secondary,"--background-start":appearance.background,"--background-end":appearance.backgroundEnd,"--panel-blur":appearance.panelBlur+"px","--panel-alpha":appearance.panelTransparency/100,"--card-radius":appearance.cornerRadius+"px","--card-gap":appearance.cardSpacing+"px","--poster-width":appearance.posterSize+"px","--font-scale":appearance.fontSize/100,"--button-color":appearance.buttonColor,"--card-color":appearance.cardColor,"--highlight-color":appearance.highlightColor};
+    Object.entries(vars).forEach(([key,value])=>root.style.setProperty(key,String(value)));
+    for(const key of ["showTitles","showRatings","showYears","showHero","hoverEffects","posterZoom"])root.dataset[key]=String(Boolean(appearance[key]));
   }, [appearance]);
   const [genreTitles, setGenreTitles] = useState([]);
   const [genreTitlesLoading, setGenreTitlesLoading] = useState(false);
@@ -1076,6 +1084,34 @@ export default function App() {
             </div>
             <p className="appearance-help">Higher contrast strengthens borders and text for readability.</p>
           </section>
+          <section className="appearance-group">
+            <h3>Layout &amp; density</h3>
+            <label className="appearance-control">Density<select value={appearance.density} onChange={e=>updateAppearance({density:e.target.value})}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label>
+            <label className="appearance-control">Poster size: {appearance.posterSize}px<input type="range" min="110" max="260" value={appearance.posterSize} onChange={e=>updateAppearance({posterSize:Number(e.target.value)})}/></label>
+            <label className="appearance-control">Card spacing: {appearance.cardSpacing}px<input type="range" min="4" max="32" value={appearance.cardSpacing} onChange={e=>updateAppearance({cardSpacing:Number(e.target.value)})}/></label>
+            <label className="appearance-control">Corner roundness: {appearance.cornerRadius}px<input type="range" min="0" max="32" value={appearance.cornerRadius} onChange={e=>updateAppearance({cornerRadius:Number(e.target.value)})}/></label>
+            <div className="appearance-toggle-grid"><label><input type="checkbox" checked={appearance.showTitles} onChange={e=>updateAppearance({showTitles:e.target.checked})}/> Titles</label><label><input type="checkbox" checked={appearance.showRatings} onChange={e=>updateAppearance({showRatings:e.target.checked})}/> Ratings</label><label><input type="checkbox" checked={appearance.showYears} onChange={e=>updateAppearance({showYears:e.target.checked})}/> Release years</label></div>
+          </section>
+          <section className="appearance-group">
+            <h3>Advanced visual styling</h3>
+            <label className="appearance-control">Background mode<select value={appearance.backgroundMode} onChange={e=>updateAppearance({backgroundMode:e.target.value})}><option value="solid">Solid</option><option value="gradient">Gradient</option></select></label>
+            <div className="appearance-color-grid">{[["background","Background"],["backgroundEnd","Gradient end"],["secondary","Secondary"],["buttonColor","Buttons"],["cardColor","Cards"],["highlightColor","Highlights"]].map(([key,label])=><label key={key}>{label}<input type="color" value={appearance[key]} onChange={e=>updateAppearance({[key]:e.target.value})}/></label>)}</div>
+            <label className="appearance-control">Panel blur: {appearance.panelBlur}px<input type="range" min="0" max="24" value={appearance.panelBlur} onChange={e=>updateAppearance({panelBlur:Number(e.target.value)})}/></label>
+            <label className="appearance-control">Panel transparency: {appearance.panelTransparency}%<input type="range" min="45" max="100" value={appearance.panelTransparency} onChange={e=>updateAppearance({panelTransparency:Number(e.target.value)})}/></label>
+          </section>
+          <section className="appearance-group">
+            <h3>Typography &amp; motion</h3>
+            <label className="appearance-control">Font size: {appearance.fontSize}%<input type="range" min="85" max="120" value={appearance.fontSize} onChange={e=>updateAppearance({fontSize:Number(e.target.value)})}/></label>
+            <label className="appearance-control">Animation<select value={appearance.animation} onChange={e=>updateAppearance({animation:e.target.value})}><option value="off">Off</option><option value="subtle">Subtle</option><option value="full">Full</option></select></label>
+            <div className="appearance-toggle-grid"><label><input type="checkbox" checked={appearance.hoverEffects} onChange={e=>updateAppearance({hoverEffects:e.target.checked})}/> Hover effects</label><label><input type="checkbox" checked={appearance.posterZoom} onChange={e=>updateAppearance({posterZoom:e.target.checked})}/> Poster zoom</label><label><input type="checkbox" checked={appearance.reducedMotion} onChange={e=>updateAppearance({reducedMotion:e.target.checked})}/> Reduced motion</label></div>
+          </section>
+          <section className="appearance-group">
+            <h3>Homepage customization</h3>
+            <label className="appearance-toggle"><input type="checkbox" checked={appearance.showHero} onChange={e=>updateAppearance({showHero:e.target.checked})}/> Cinematic hero banner</label>
+            <label className="appearance-control">Card style<select value={appearance.cardStyle} onChange={e=>updateAppearance({cardStyle:e.target.value})}><option value="poster">Portrait posters</option><option value="backdrop">Landscape cards</option></select></label>
+            <label className="appearance-control">Default landing tab<select value={appearance.defaultTab} onChange={e=>updateAppearance({defaultTab:e.target.value})}><option value="search">Discover</option><option value="watchlist">Watchlist</option><option value="favorites">Favorites</option><option value="history">Continue Watching</option></select></label>
+            {[["now","Now Playing"],["continue","Continue Watching"],["movies","Trending Movies"],["tv","Trending TV Shows"],["recommendations","Recommended from your library"]].map(([key,label])=><div className="home-section-setting" key={key}><label><input type="checkbox" checked={appearance.homeSections.includes(key)} onChange={e=>updateAppearance({homeSections:e.target.checked?[...appearance.homeSections,key]:appearance.homeSections.filter(v=>v!==key)})}/>{label}</label><span><button type="button" disabled={appearance.homeOrder.indexOf(key)<=0} onClick={()=>moveHomeSection(key,-1)}>↑</button><button type="button" disabled={appearance.homeOrder.indexOf(key)<0||appearance.homeOrder.indexOf(key)>=appearance.homeOrder.length-1} onClick={()=>moveHomeSection(key,1)}>↓</button></span></div>)}
+          </section>
           <section className="appearance-group" aria-labelledby="appearance-data-label">
             <h3 id="appearance-data-label">Preferences backup</h3>
             <p className="appearance-help">Export your appearance choices to a file, or import a previously exported file.</p>
@@ -1183,10 +1219,13 @@ export default function App() {
         {error && <p className="error">{error}</p>}
         {homeProvider !== "all" ? (providerTitlesLoading ? <section className="discovery-section provider-results-section"><div className="section-heading"><h2>{STREAMING_PROVIDERS.find((provider) => String(provider.id) === String(homeProvider))?.name || "Provider"} {type === "movie" ? "Movies" : "TV Shows"}</h2></div><ShelfSkeleton count={8} genre /></section> : providerTitlesError ? <section className="discovery-section provider-results-section"><div className="section-heading"><h2>{STREAMING_PROVIDERS.find((provider) => String(provider.id) === String(homeProvider))?.name || "Provider"} {type === "movie" ? "Movies" : "TV Shows"}</h2></div><div className="empty-state">{providerTitlesError}</div></section> : renderGenreGrid(`${STREAMING_PROVIDERS.find((provider) => String(provider.id) === String(homeProvider))?.name || "Provider"} ${type === "movie" ? "Movies" : "TV Shows"}`, providerTitles, type, "provider")) : <>
           {homeGenre !== "all" && (genreTitlesLoading ? <section className="discovery-section genre-results-section"><div className="section-heading"><h2>{genreOptions.find((genre) => String(genre.id) === String(homeGenre))?.name || "Selected Genre"} {type === "movie" ? "Movies" : "TV Shows"}</h2></div><ShelfSkeleton count={8} genre /></section> : genreTitlesError ? <section className="discovery-section genre-results-section"><div className="section-heading"><h2>{genreOptions.find((genre) => String(genre.id) === String(homeGenre))?.name || "Selected Genre"} {type === "movie" ? "Movies" : "TV Shows"}</h2></div><div className="empty-state">{genreTitlesError}</div></section> : renderGenreGrid(`${genreOptions.find((genre) => String(genre.id) === String(homeGenre))?.name || "Selected Genre"} ${type === "movie" ? "Movies" : "TV Shows"}`, genreTitles, type, "genre"))}
-          {renderShelf("Now Playing", nowPlayingMovies, "movie", "now")}
-          {renderContinueShelf()}
-          {renderShelf("Trending Movies", trendingMovies, "movie", "movies")}
-          {renderShelf("Trending TV Shows", trendingTvShows, "tv", "tv")}
+          {appearance.homeOrder.filter(key=>appearance.homeSections.includes(key)).map(key=>{
+            if(key==="now")return <React.Fragment key={key}>{renderShelf("Now Playing",nowPlayingMovies,"movie","now")}</React.Fragment>;
+            if(key==="continue")return <React.Fragment key={key}>{renderContinueShelf()}</React.Fragment>;
+            if(key==="movies")return <React.Fragment key={key}>{renderShelf("Trending Movies",trendingMovies,"movie","movies")}</React.Fragment>;
+            if(key==="tv")return <React.Fragment key={key}>{renderShelf("Trending TV Shows",trendingTvShows,"tv","tv")}</React.Fragment>;
+            return null;
+          })}
           <section className="discovery-section"><div className="section-heading"><h2>Recommended from your library</h2>{shelfControls("Recommended from your library", personalizedRecs.length, "recommendations")}</div>{personalizedRecs.length ? <div className="discovery-track" id={shelfId("Recommended from your library")} onScroll={(event) => handleShelfScroll(event, "recommendations")}>{personalizedRecs.map((item) => <article className="discovery-card" key={`personal-${item._mediaType}-${item.id}`}><button className="poster-button" onClick={() => choose(item, item._mediaType)}><Poster item={item} className="discovery-poster" /><span className="card-info"><strong>{mediaName(item)}</strong><small>{item._mediaType === "tv" ? "TV show" : "Movie"} · {yearText(item)} · ★ {Number(item.vote_average || 0).toFixed(1)}</small></span></button>{renderPosterActions(item, item._mediaType)}</article>)}</div> : <div className="empty-state">{localRecommendations.length ? "Finding recommendations from your saved titles…" : "Add favorites or open titles to build personalized recommendations."}</div>}</section>
         </>}
         </section>
