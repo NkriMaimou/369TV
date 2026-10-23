@@ -924,13 +924,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transition: opacity 80ms linear;
 }
 .hero-drag-preview-previous {
-  right: 100%;
-  transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
-}
-.hero-drag-preview-next {
-  left: 100%;
+  left: 0;
   transform: translate3d(calc(-100% + var(--hero-drag-x, 0px)), 0, 0);
 }
+.hero-drag-preview-next {
+  left: 0;
+  transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
+}
+.cinematic-copy { position: relative; z-index: 2; }
 .cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; }
 .cinematic-hero {
   position: relative;
