@@ -1465,11 +1465,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
   aspect-ratio: 2 / 3;
   object-fit: cover;
 }
-.provider-results-section .provider-skeleton-grid {
-  display: block;
-  padding: 0;
-}
-.provider-results-section .provider-skeleton-grid .skeleton-track {
+.provider-results-section .provider-results-grid.provider-skeleton-grid.skeleton-track {
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: repeat(auto-fill, clamp(145px, 15vw, 205px));
@@ -1481,7 +1477,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
   overflow: visible;
   padding: 5px 2px 14px;
 }
-.provider-results-section .provider-skeleton-grid .skeleton-card {
+ .provider-results-section .provider-skeleton-grid .skeleton-card {
   width: 100%;
   min-width: 0;
 }
