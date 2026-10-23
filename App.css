@@ -1366,3 +1366,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline-color:
     padding-top: 12px;
   }
 }
+
+/* Fix the actual cause: the base .topbar rule has a negative top margin,
+   which pulls the logo into the browser viewport's upper edge. On the
+   homepage, explicitly cancel that offset so the header starts at page top. */
+.app:has(.topbar.home-overlay-header) .topbar.home-overlay-header,
+.app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+  margin-top: 0 !important;
+  padding-top: 18px !important;
+  position: relative !important;
+  top: auto !important;
+}
+@media (max-width: 620px) {
+  .app:has(.topbar.home-overlay-header) .topbar.home-overlay-header,
+  .app:has(.topbar.home-overlay-header) .topbar.home-overlay-header.is-scrolled {
+    margin-top: 0 !important;
+    padding-top: 14px !important;
+  }
+}
