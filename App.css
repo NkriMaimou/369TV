@@ -897,7 +897,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 
 /* Featured movie/TV carousel: quick directional slide, responsive to touch and mouse swipes. */
-.hero-slide-enter { animation-duration: 280ms; animation-timing-function: cubic-bezier(.22,.75,.25,1); animation-fill-mode: both; will-change: transform, opacity; }
+.hero-slide-enter { animation-duration: 150ms; animation-timing-function: cubic-bezier(.22,.75,.25,1); animation-fill-mode: both; will-change: opacity; }
 .hero-slide-next { animation-name: hero-slide-next; }
 .hero-slide-previous { animation-name: hero-slide-previous; }
 @keyframes hero-slide-next {
@@ -979,6 +979,12 @@ body { overflow-x: clip; }
   transition: none !important;
 }
 .cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; }
+.cinematic-hero.hero-is-settling .hero-current-backdrop,
+.cinematic-hero.hero-is-settling .cinematic-copy,
+.cinematic-hero.hero-is-settling .hero-drag-preview {
+  transition: transform 150ms cubic-bezier(.22,.61,.36,1), opacity 150ms ease;
+}
+.cinematic-hero.hero-is-settling .hero-drag-preview { opacity: 1; }
 .cinematic-hero.hero-is-dragging {
   animation: none !important;
   cursor: default;
