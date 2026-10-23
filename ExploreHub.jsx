@@ -153,7 +153,7 @@ export default function ExploreHub({ tmdbFetch, choose, selected, type, initialP
     event?.preventDefault();
     setLoading(true); setError(""); setEntityTitles([]); setPage(1);
     try {
-      const params = new URLSearchParams({ include_adult:"false", sort_by:sort, page:"1", with_original_language:language, watch_region:country, "vote_average.gte":rating, "vote_count.gte":minVotes });
+      const params = new URLSearchParams({ include_adult:"false", sort_by:sort, page:"1", with_original_language:language, with_origin_country:country, watch_region:country, "vote_average.gte":rating, "vote_count.gte":minVotes });
       if (year.trim()) params.set(mediaKind === "movie" ? "primary_release_year" : "first_air_date_year", year.trim());
       if (genre) params.set("with_genres", genre);
       const data = await tmdbFetch(`/discover/${mediaKind}?${params.toString()}`);
@@ -166,7 +166,7 @@ export default function ExploreHub({ tmdbFetch, choose, selected, type, initialP
   async function loadMoreDiscover() {
     const next = page + 1; setLoading(true);
     try {
-      const params = new URLSearchParams({ include_adult:"false", sort_by:sort, page:String(next), with_original_language:language, watch_region:country, "vote_average.gte":rating, "vote_count.gte":minVotes });
+      const params = new URLSearchParams({ include_adult:"false", sort_by:sort, page:String(next), with_original_language:language, with_origin_country:country, watch_region:country, "vote_average.gte":rating, "vote_count.gte":minVotes });
       if (year.trim()) params.set(mediaKind === "movie" ? "primary_release_year" : "first_air_date_year", year.trim());
       if (genre) params.set("with_genres", genre);
       const data = await tmdbFetch(`/discover/${mediaKind}?${params.toString()}`);
