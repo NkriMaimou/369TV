@@ -1547,3 +1547,50 @@ body { background: var(--background-start, #090a0f); }
  .explore-franchise-list button { grid-template-columns:44px minmax(0,1fr) auto; gap:7px; padding:10px 4px; }
  .crew-profile-links button { align-items:flex-start; }
 }
+
+
+/* OpenSubtitles lookup */
+.opensubtitles-panel {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line, rgba(255,255,255,.12));
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+}
+.opensubtitles-panel .section-heading { align-items: flex-start; gap: 14px; }
+.opensubtitles-panel .section-heading h2 { margin: 0 0 5px; }
+.opensubtitles-panel .section-heading p { margin: 0; }
+.opensubtitles-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) minmax(130px, .8fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 15px;
+}
+.opensubtitles-controls label { display: grid; gap: 7px; font-size: .86rem; color: var(--muted, #aaa); }
+.opensubtitles-controls input, .opensubtitles-controls select {
+  width: 100%; min-width: 0; padding: 11px 12px;
+  border: 1px solid var(--line, rgba(255,255,255,.15));
+  border-radius: 10px; color: inherit; background: rgba(0,0,0,.24);
+}
+.opensubtitles-controls button { min-height: 42px; white-space: nowrap; }
+.opensubtitles-key-note { margin: 10px 0; font-size: .8rem; }
+.opensubtitles-message { margin: 12px 0; color: #ffb4a9; }
+.opensubtitles-results { display: grid; gap: 8px; margin: 16px 0; }
+.opensubtitles-results-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.opensubtitles-results-heading span { color: var(--muted, #aaa); font-size: .82rem; }
+.opensubtitles-result {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px; border: 1px solid var(--line, rgba(255,255,255,.1)); border-radius: 10px;
+}
+.opensubtitles-result>div { min-width: 0; display: grid; gap: 5px; }
+.opensubtitles-result strong { overflow-wrap: anywhere; }
+.opensubtitles-result small { color: var(--muted, #aaa); }
+.opensubtitles-result a { flex-shrink: 0; color: var(--accent, #8db8ff); text-decoration: none; }
+.opensubtitles-result a:hover { text-decoration: underline; }
+@media (max-width: 700px) {
+  .opensubtitles-panel { padding: 13px; }
+  .opensubtitles-controls { grid-template-columns: 1fr; }
+  .opensubtitles-controls button { width: 100%; }
+  .opensubtitles-result { align-items: flex-start; flex-direction: column; }
+}
