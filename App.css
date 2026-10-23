@@ -926,11 +926,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .hero-drag-preview-previous {
   left: 0;
-  transform: translate3d(calc(-100% + var(--hero-drag-x, 0px)), 0, 0);
+  transform: translate3d(-100%, 0, 0);
 }
 .hero-drag-preview-next {
   left: 0;
-  transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
+  transform: translate3d(100%, 0, 0);
 }
 /* Keep the off-canvas preview panels clipped so a swipe can never widen the page. */
 html, body, #root { max-width: 100%; }
@@ -942,21 +942,21 @@ body { overflow-x: clip; }
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }
-.cinematic-hero.hero-is-dragging .cinematic-copy {
-  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
-  transition: none;
-}
+.cinematic-hero.hero-is-dragging .cinematic-copy { transition: none; }
 .cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; transition: none; }
 .cinematic-hero {
   position: relative;
   isolation: isolate;
-  overflow: clip;
+  overflow: visible;
   touch-action: pan-y;
   cursor: default;
-  transform: none;
-  transition: none;
-  will-change: auto;
-  background-position: calc(50% + var(--hero-drag-x, 0px)) 28% !important;
+  transform: translate3d(0, 0, 0);
+  transition: transform 260ms cubic-bezier(.22,.75,.25,1);
+  will-change: transform;
+}
+.cinematic-hero.hero-is-dragging {
+  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
+  transition: none !important;
 }
 .cinematic-hero.hero-is-dragging {
   animation: none !important;
