@@ -170,16 +170,6 @@ export default function App() {
   const updateAppearance = (patch) => setAppearance((current) => ({ ...current, ...patch }));
   const resetAppearance = () => setAppearance({ ...DEFAULT_APPEARANCE });
   const moveHomeSection = (key, direction) => setAppearance((current) => { const order=[...current.homeOrder]; const i=order.indexOf(key), j=i+direction; if(i<0||j<0||j>=order.length)return current; [order[i],order[j]]=[order[j],order[i]]; return {...current,homeOrder:order}; });
-  const [appearance, setAppearance] = useState(() => {
-    const saved = readStore("369-nkri-tv-appearance", {});
-    return {
-      theme: ["dark", "amoled", "light"].includes(saved?.theme) ? saved.theme : DEFAULT_APPEARANCE.theme,
-      accent: typeof saved?.accent === "string" && /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent : DEFAULT_APPEARANCE.accent,
-      contrast: ["low", "standard", "high"].includes(saved?.contrast) ? saved.contrast : DEFAULT_APPEARANCE.contrast,
-    };
-  });
-  const updateAppearance = (patch) => setAppearance((current) => ({ ...current, ...patch }));
-  const resetAppearance = () => setAppearance({ ...DEFAULT_APPEARANCE });
   const exportAppearance = () => {
     const blob = new Blob([JSON.stringify({ version: 1, appearance }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -198,7 +188,7 @@ export default function App() {
         const parsed = JSON.parse(String(reader.result || ""));
         const value = parsed.appearance || parsed;
         if (!["dark", "amoled", "light"].includes(value.theme) || !/^#[0-9a-f]{6}$/i.test(value.accent) || !["low", "standard", "high"].includes(value.contrast)) throw new Error("Invalid preferences");
-        setAppearance({ theme: value.theme, accent: value.accent, contrast: value.contrast });
+        setAppearance({ ...DEFAULT_APPEARANCE, ...value });
         setError("");
       } catch {
         setError("That preferences file is invalid. Choose a 369 NKRI TV preferences JSON file.");
