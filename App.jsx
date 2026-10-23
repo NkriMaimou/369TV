@@ -443,6 +443,9 @@ export default function App() {
       return;
     }
     const controller = new AbortController();
+    shelfLoadingRef.current.provider = false;
+    shelfExhaustedRef.current.provider = false;
+    setShelfPages((previous) => ({ ...previous, provider: 2 }));
     setProviderTitlesLoading(true);
     setProviderTitlesError("");
     (async () => {
@@ -467,6 +470,24 @@ export default function App() {
     })();
     return () => controller.abort();
   }, [homeProvider, type]);
+
+  // Provider results use a vertical poster grid. Load another TMDB page near the bottom.
+  useEffect(() => {
+    if (homeProvider === "all" || activeTab !== "search" || showPlayer) return;
+    const checkProviderEnd = () => {
+      const section = document.querySelector(".provider-results-section");
+      if (section && section.getBoundingClientRect().bottom < window.innerHeight + 650) {
+        loadMoreShelf("provider");
+      }
+    };
+    window.addEventListener("scroll", checkProviderEnd, { passive: true });
+    window.addEventListener("resize", checkProviderEnd);
+    checkProviderEnd();
+    return () => {
+      window.removeEventListener("scroll", checkProviderEnd);
+      window.removeEventListener("resize", checkProviderEnd);
+    };
+  }, [homeProvider, activeTab, showPlayer, providerTitles.length, providerTitlesLoading, shelfLoading.provider]);
 
   // Close either filter menu when users tap/click outside it or press Escape.
   useEffect(() => {
@@ -839,6 +860,8 @@ export default function App() {
         data = await safeFetch(`/trending/tv/day?language=en-US&page=${nextPage}`);
       } else if (shelfKey === "genre" && homeGenre !== "all") {
         data = await safeFetch(`/discover/${type}?with_genres=${encodeURIComponent(homeGenre)}&sort_by=popularity.desc&include_adult=false&language=en-US&page=${nextPage}`);
+      } else if (shelfKey === "provider" && homeProvider !== "all") {
+        data = await safeFetch(`/discover/${type}?with_watch_providers=${encodeURIComponent(homeProvider)}&watch_region=NL&sort_by=popularity.desc&include_adult=false&language=en-US&page=${nextPage}`);
       } else if (shelfKey === "recommendations") {
         const seeds = localRecommendations.slice(0, 4);
         const groups = await Promise.all(seeds.map(async (item) => {
@@ -862,6 +885,7 @@ export default function App() {
         movies: setTrendingMovies,
         tv: setTrendingTvShows,
         genre: setGenreTitles,
+        provider: setProviderTitles,
         recommendations: setPersonalizedRecs,
       }[shelfKey];
 
@@ -869,7 +893,7 @@ export default function App() {
         setter((previous) => {
           const kindFor = (item) => {
             if (item._mediaType === "tv" || item.media_type === "tv" || shelfKey === "tv") return "tv";
-            if (shelfKey === "genre") return type === "tv" ? "tv" : "movie";
+            if (shelfKey === "genre" || shelfKey === "provider") return type === "tv" ? "tv" : "movie";
             return "movie";
           };
           const seen = new Set(previous.map((item) => `${kindFor(item)}:${item.id}`));
@@ -964,7 +988,7 @@ export default function App() {
     const id = shelfId(shelfTitle);
     return <section className="discovery-section genre-results-section" key={shelfTitle}>
       <div className="section-heading"><div><h2>{shelfTitle}</h2><span className="muted">Popular titles in this genre</span></div>{shelfControls(shelfTitle, items.length, shelfKey)}</div>
-      {items.length ? <div className="genre-results-track" id={id} onScroll={(event) => handleShelfScroll(event, shelfKey)}>{items.map((item) => {
+      {items.length ? <div className={shelfKey === "provider" ? "provider-results-grid" : "genre-results-track"} id={id} onScroll={shelfKey === "provider" ? undefined : (event) => handleShelfScroll(event, shelfKey)}>{items.map((item) => {
         const favorite = isFavorite(item, itemType);
         return <article className="discovery-card genre-result-card" key={`${shelfTitle}-${item.id}`}>
           <button className={`discovery-favorite${favorite ? " active" : ""}`} aria-label={favorite ? "Remove favorite" : "Add favorite"} onClick={() => toggleFavorite(item, itemType)}>{favorite ? "★" : "☆"}</button>
@@ -972,7 +996,7 @@ export default function App() {
           {renderPosterActions(item, itemType)}
         </article>;
       })}</div> : <div className="empty-state">No titles found for this genre.</div>}
-      {shelfLoading[shelfKey] && <p className="genre-loading-more">Loading more titles…</p>}
+      {shelfLoading[shelfKey] && (shelfKey === "provider" ? <div className="provider-results-grid provider-skeleton-grid" role="status" aria-label="Loading more titles"><ShelfSkeleton count={8} genre /></div> : <p className="genre-loading-more">Loading more titles…</p>)}
     </section>;
   }
 
