@@ -932,32 +932,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   left: 0;
   transform: translate3d(100%, 0, 0);
 }
-/* Keep the off-canvas preview panels clipped so a swipe can never widen the page. */
+/* Keep the carousel viewport fixed-width; only its three slide layers move. */
 html, body, #root { max-width: 100%; }
 body { overflow-x: clip; }
 .home-panel { overflow-x: clip; }
-.cinematic-copy {
-  position: relative;
-  z-index: 2;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
-}
-.cinematic-hero.hero-is-dragging .cinematic-copy { transition: none; }
-.cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; transition: none; }
 .cinematic-hero {
   position: relative;
   isolation: isolate;
-  overflow: visible;
+  overflow: clip;
   touch-action: pan-y;
   cursor: default;
-  transform: translate3d(0, 0, 0);
-  transition: transform 260ms cubic-bezier(.22,.75,.25,1);
+  transform: none;
+  transition: none;
+  will-change: auto;
+}
+.hero-current-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center 28%;
+  background-repeat: no-repeat;
+  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
+  transition: transform 240ms cubic-bezier(.22,.75,.25,1);
+  will-change: transform;
+  pointer-events: none;
+}
+.hero-drag-preview-previous {
+  left: 0;
+  transform: translate3d(calc(-100% + var(--hero-drag-x, 0px)), 0, 0);
+}
+.hero-drag-preview-next {
+  left: 0;
+  transform: translate3d(calc(100% + var(--hero-drag-x, 0px)), 0, 0);
+}
+.cinematic-copy {
+  position: relative;
+  z-index: 2;
+  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
+  transition: transform 240ms cubic-bezier(.22,.75,.25,1);
   will-change: transform;
 }
-.cinematic-hero.hero-is-dragging {
-  transform: translate3d(var(--hero-drag-x, 0px), 0, 0);
+.cinematic-hero.hero-is-dragging .hero-current-backdrop,
+.cinematic-hero.hero-is-dragging .cinematic-copy,
+.cinematic-hero.hero-is-dragging .hero-drag-preview {
   transition: none !important;
 }
+.cinematic-hero.hero-is-dragging .hero-drag-preview { opacity: 1; }
 .cinematic-hero.hero-is-dragging {
   animation: none !important;
   cursor: default;
