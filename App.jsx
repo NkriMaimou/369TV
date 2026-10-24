@@ -190,7 +190,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(String(reader.result || ""));
         const value = parsed.appearance || parsed;
-        if (!["dark", "amoled", "light"].includes(value.theme) || !/^#[0-9a-f]{6}$/i.test(value.accent) || !["low", "standard", "high"].includes(value.contrast)) throw new Error("Invalid preferences");
+        if (!["dark", "amoled", "light", "girly", "minimal", "vaporwave"].includes(value.theme) || !/^#[0-9a-f]{6}$/i.test(value.accent) || !["low", "standard", "high"].includes(value.contrast)) throw new Error("Invalid preferences");
         setAppearance({ ...DEFAULT_APPEARANCE, ...value });
         setError("");
       } catch {
@@ -1062,7 +1062,7 @@ export default function App() {
           <section className="appearance-group" aria-labelledby="appearance-theme-label">
             <h3 id="appearance-theme-label">Theme</h3>
             <div className="appearance-choice-grid">
-              {[["dark", "Dark", "Classic dark interface"], ["amoled", "AMOLED", "Deep black backgrounds"], ["light", "Light", "Bright interface"]].map(([value, label, description]) => <button key={value} type="button" className={appearance.theme === value ? "appearance-choice selected" : "appearance-choice"} aria-pressed={appearance.theme === value} onClick={() => updateAppearance({ theme: value })}><span className={`appearance-swatch theme-swatch-${value}`} /><strong>{label}</strong><small>{description}</small></button>)}
+              {[["dark", "Dark", "Classic dark interface"], ["amoled", "AMOLED", "Deep black backgrounds"], ["light", "Light", "Bright interface"], ["girly", "Girly", "Soft pinks and dreamy lilac"], ["minimal", "Minimal", "Clean, calm monochrome"], ["vaporwave", "Vaporwave", "Neon pink, cyan and purple"]].map(([value, label, description]) => <button key={value} type="button" className={appearance.theme === value ? "appearance-choice selected" : "appearance-choice"} aria-pressed={appearance.theme === value} onClick={() => updateAppearance(value === "girly" ? {theme:value,accent:"#e879b9",secondary:"#c4b5fd",background:"#fff1f7",backgroundEnd:"#f5e9ff",buttonColor:"#db5caa",cardColor:"#fff8fc",highlightColor:"#9d477c"} : value === "minimal" ? {theme:value,accent:"#555b66",secondary:"#a3a8b2",background:"#f3f4f6",backgroundEnd:"#e7e9ed",buttonColor:"#404550",cardColor:"#ffffff",highlightColor:"#555b66"} : value === "vaporwave" ? {theme:value,accent:"#ff4fd8",secondary:"#35e7ff",background:"#160d2b",backgroundEnd:"#32104b",buttonColor:"#8b36ff",cardColor:"#21143b",highlightColor:"#ffb7f2"} : {theme:value})}><span className={`appearance-swatch theme-swatch-${value}`} /><strong>{label}</strong><small>{description}</small></button>)}
             </div>
           </section>
           <section className="appearance-group" aria-labelledby="appearance-accent-label">
