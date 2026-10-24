@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
 import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
 import "./AnimeHub.css";
 
@@ -28,16 +27,30 @@ function AnimeVideo({ stream, title }) {
     const video = videoRef.current;
     if (!video || !source) return undefined;
     let hls;
-    if (isHls && Hls.isSupported()) {
-      hls = new Hls({ enableWorker: true });
-      hls.loadSource(source);
-      hls.attachMedia(video);
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = source;
-    } else {
-      video.src = source;
-    }
+    let disposed = false;
+    const attach = (HlsCtor) => {
+      if (disposed) return;
+      if (isHls && HlsCtor?.isSupported?.()) {
+        hls = new HlsCtor({ enableWorker: true });
+        hls.loadSource(source);
+        hls.attachMedia(video);
+      } else {
+        video.src = source;
+      }
+    };
+    if (isHls && !video.canPlayType("application/vnd.apple.mpegurl")) {
+      if (window.Hls) attach(window.Hls);
+      else {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js";
+        script.async = true;
+        script.onload = () => attach(window.Hls);
+        script.onerror = () => { if (!disposed) video.src = source; };
+        document.head.appendChild(script);
+      }
+    } else attach(window.Hls);
     return () => {
+      disposed = true;
       hls?.destroy();
       video.pause();
       video.removeAttribute("src");
@@ -47,16 +60,15 @@ function AnimeVideo({ stream, title }) {
 
   const subtitles = Array.isArray(stream?.subtitles) ? stream.subtitles : [];
   return <div className="anime-hub-player">
-    <video key={source} ref={videoRef} controls playsInline preload="metadata" crossOrigin="anonymous" aria-label={title || "Anime episode"} />
-    {stream?.quality && <small>Quality: {stream.quality}</small>}
-    {subtitles.length > 0 && <div className="anime-hub-subtitles">
+    <video key={source} ref={videoRef} controls playsInline preload="metadata" crossOrigin="anonymous" aria-label={title || "Anime episode"}>
       {subtitles.map((track, index) => {
         const url = track?.url || track?.sourceUrl || track?.src;
         if (!url) return null;
         return <track key={url + index} kind="subtitles" src={url} srcLang={track.language || track.lang || "und"} label={track.label || track.language || track.lang || `Subtitle ${index + 1}`} default={Boolean(track.default)} />;
       })}
-      <p>Subtitle tracks are available in the CC menu when supported by the source.</p>
-    </div>}
+    </video>
+    {stream?.quality && <small>Quality: {stream.quality}</small>}
+    {subtitles.length > 0 && <p>Subtitle tracks are available in the CC menu when supported by the source.</p>}
     <p className="anime-hub-player-note">If playback fails, try another provider or episode; third-party streams can expire or be blocked by their host.</p>
   </div>;
 }
