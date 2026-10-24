@@ -1,24 +1,14 @@
-const DEFAULT_API_URL = import.meta.env.DEV ? "http://localhost:8788" : "";
+const DEFAULT_API_URL = "http://localhost:8788";
 
 export function getAnimeApiUrl() {
   return (import.meta.env?.VITE_ANIME_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
 }
 
 async function request(path, { signal } = {}) {
-  const baseUrl = getAnimeApiUrl();
-  if (!baseUrl) {
-    throw new Error("Anime API is not configured. Set VITE_ANIME_API_URL in your Cloudflare Pages environment variables and redeploy.");
-  }
-  let response;
-  try {
-    response = await fetch(`${baseUrl}${path}`, {
-      headers: { Accept: "application/json" },
-      signal,
-    });
-  } catch (error) {
-    if (error?.name === "AbortError") throw error;
-    throw new Error("Could not reach the Anime API. Check the Render service and its CORS settings.");
-  }
+  const response = await fetch(`${getAnimeApiUrl()}${path}`, {
+    headers: { Accept: "application/json" },
+    signal,
+  });
   if (!response.ok) {
     let detail = "";
     try {
