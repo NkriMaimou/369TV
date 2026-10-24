@@ -1178,6 +1178,45 @@ body { overflow-x: clip; }
   --text-main: #292d35;
   --text-muted: #686f7b;
 }
+
+:root[data-theme="minimal-black"] {
+  color-scheme: dark;
+  --surface-page: #050505;
+  --surface-panel: #0d0d0d;
+  --surface-input: #080808;
+  --surface-border: #303030;
+  --text-main: #f0f0f0;
+  --text-muted: #a3a3a3;
+}
+:root[data-theme="minimal-black"] body,
+:root[data-theme="minimal-black"] .app { color: var(--text-main); background: var(--surface-page); }
+:root[data-theme="minimal-black"] .panel,
+:root[data-theme="minimal-black"] .info-panel,
+:root[data-theme="minimal-black"] .discovery-card,
+:root[data-theme="minimal-black"] .library-card,
+:root[data-theme="minimal-black"] .card-info,
+:root[data-theme="minimal-black"] .settings-menu,
+:root[data-theme="minimal-black"] .collection-modal,
+:root[data-theme="minimal-black"] .autocomplete-panel {
+  color: var(--text-main);
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+:root[data-theme="minimal-black"] input,
+:root[data-theme="minimal-black"] select,
+:root[data-theme="minimal-black"] textarea {
+  color: var(--text-main);
+  background: var(--surface-input);
+  border-color: var(--surface-border);
+}
+:root[data-theme="minimal-black"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item) {
+  color: var(--text-main);
+  border-color: var(--surface-border);
+}
+:root[data-theme="minimal-black"] .tabs .active,
+:root[data-theme="minimal-black"] .library-tabs .active { color: var(--text-main); }
+.theme-swatch-minimal-black { background: linear-gradient(135deg, #050505 50%, #a3a3a3 50%); }
+
 :root[data-theme="vaporwave"] {
   color-scheme: dark;
   --surface-page: #160d2b;
