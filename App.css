@@ -1805,3 +1805,10 @@ body { background: var(--background-start, #090a0f); }
   margin-left: clamp(16px, 2.2vw, 36px);
   margin-right: clamp(16px, 2.2vw, 36px);
 }
+
+
+/* Inset every homepage shelf section, not just Continue Watching. */
+.app:has(.topbar.home-overlay-header) .home-panel > .discovery-section {
+  margin-left: clamp(16px, 2.2vw, 36px);
+  margin-right: clamp(16px, 2.2vw, 36px);
+}
