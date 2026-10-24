@@ -9,11 +9,7 @@ npm install
 npm run dev
 ```
 
-Set `VITE_TMDB_READ_TOKEN` in the frontend environment for TMDB discovery. For deployed anime search and playback, the frontend uses the same-origin Cloudflare Pages Function at `/api/anime`; no local process is required. Configure the Cloudflare Pages secret `PROXY_SECRET` before deploying. See [anime-api/README.md](anime-api/README.md) for deployment and verification steps. For optional local Node development, set `VITE_ANIME_API_URL=http://localhost:8788`.
-
-## Cloudflare Anime API
-
-The hosted API and signed HLS/subtitle proxy live in `functions/api/anime/[[path]].js` and deploy with the Pages project. Set the `PROXY_SECRET` secret in Cloudflare Pages and redeploy. Verify `/api/anime/health` on your deployed site. See [anime-api/README.md](anime-api/README.md).
+Set `VITE_TMDB_READ_TOKEN` in the frontend environment for TMDB discovery. For deployed anime search and playback, the frontend uses the existing hosted API at `https://three69tv-anime-api.onrender.com`. No local process is required. See [anime-api/README.md](anime-api/README.md) for API hosting notes.
 
 ## Run the Anime SDK service
 
