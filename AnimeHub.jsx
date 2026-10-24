@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getAnimeEpisodes, resolveAnimeStream, searchAnime } from "./animeApi.js";
+import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
+import AnimeVideoPlayer from "./AnimeVideoPlayer.jsx";
 import "./AnimeHub.css";
 
 const PROVIDERS = [
@@ -76,9 +77,28 @@ export default function AnimeHub() {
     setStream(null);
     try {
       const payload = await resolveAnimeStream(item.id, provider, language);
-      setStream(payload);
-      const video = payload?.type === "video" ? payload.streams?.[0] : payload?.streams?.[0];
-      if (!video?.sourceUrl) setMessage("The provider did not return a playable video stream.");
+      const video = payload?.streams?.[0] || payload?.stream || payload?.video || payload?.data?.streams?.[0] || null;
+      if (!video?.sourceUrl && !video?.url && !video?.src && !video?.file && !video?.streamUrl && !video?.manifestUrl) {
+        setStream(payload);
+        setMessage("The provider did not return a playable video stream.");
+        return;
+      }
+
+      // Keep playback independent from subtitle lookup: some providers include tracks
+      // with the stream, while others expose them through the SDK tracks endpoint.
+      let subtitles = video.subtitles || video.tracks || video.captions || payload?.subtitles || payload?.tracks || [];
+      if (!Array.isArray(subtitles) || subtitles.length === 0) {
+        try {
+          const trackPayload = await getAnimeTracks(item.id, provider, language);
+          subtitles = Array.isArray(trackPayload)
+            ? trackPayload
+            : trackPayload?.subtitles || trackPayload?.tracks || trackPayload?.items || trackPayload?.data?.subtitles || [];
+        } catch {
+          subtitles = [];
+        }
+      }
+      const playable = { ...video, subtitles: Array.isArray(subtitles) ? subtitles : [] };
+      setStream({ ...payload, streams: [playable] });
     } catch (error) {
       setMessage(error.message || "Could not resolve this episode.");
     } finally {
@@ -144,16 +164,12 @@ export default function AnimeHub() {
               </button>
             ))}
           </div>
-          {playableStream?.sourceUrl && (
-            <div className="anime-hub-player">
-              {playableStream.isHLS
-                ? <p>Stream resolved. This source is HLS; connect it to the site's HLS-capable player (for example hls.js) to play it here.</p>
-                : <video controls playsInline preload="metadata" src={playableStream.sourceUrl} />}
-              {playableStream.quality && <small>Quality: {playableStream.quality}</small>}
-              {Array.isArray(playableStream.subtitles) && playableStream.subtitles.length > 0 && (
-                <p>Subtitle tracks available: {playableStream.subtitles.length}. Wire these tracks into the player to display them.</p>
-              )}
-            </div>
+          {(playableStream?.sourceUrl || playableStream?.url || playableStream?.src || playableStream?.file || playableStream?.streamUrl || playableStream?.manifestUrl) && (
+            <AnimeVideoPlayer
+              key={playableStream.sourceUrl || playableStream.url || playableStream.src || playableStream.file || playableStream.streamUrl || playableStream.manifestUrl}
+              source={playableStream}
+              title={`${titleOf(selected)} · ${playableStream.title || "Episode"}`}
+            />
           )}
         </div>
       )}
