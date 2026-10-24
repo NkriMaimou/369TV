@@ -169,7 +169,7 @@ export default function AnimeVideoPlayer({ source, title }) {
     <div className="anime-hub-player anime-sdk-player">
       {title && <strong className="anime-sdk-player-title">{title}</strong>}
       {source?.quality && <small className="anime-sdk-player-quality">Quality: {source.quality}</small>}
-      <video ref={videoRef} controls playsInline preload="metadata" crossOrigin="anonymous" aria-label={title || "Anime episode player"}>
+      <video ref={videoRef} controls playsInline preload="metadata" aria-label={title || "Anime episode player"}>
         {subtitles.map((track, index) => (
           <track key={track.src + index} kind="subtitles" src={track.src} srcLang={track.lang} label={track.label}
             default={track.default || (index === 0 && subtitles.length === 1)} />
