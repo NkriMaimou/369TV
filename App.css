@@ -1755,3 +1755,22 @@ body { background: var(--background-start, #090a0f); }
  .explore-franchise-list button { grid-template-columns:44px minmax(0,1fr) auto; gap:7px; padding:10px 4px; }
  .crew-profile-links button { align-items:flex-start; }
 }
+
+
+/* Keep the featured homepage artwork tied to the browser viewport, not the padded app wrapper. */
+.app:has(.topbar.home-overlay-header) {
+  width: 100%;
+  max-width: none;
+}
+.app:has(.topbar.home-overlay-header) .cinematic-hero.hero-fullbleed {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin-top: 0;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border-radius: 0;
+}
