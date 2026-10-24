@@ -20,8 +20,8 @@ const unitIdOf = (item) => item?.unitId || item?.unit_id || item?.episodeId || i
 
 function AnimeVideo({ stream, title }) {
   const videoRef = useRef(null);
-  const source = stream?.sourceUrl || stream?.url || stream?.src || stream?.file || "";
-  const isHls = Boolean(stream?.isHLS || /\.m3u8(?:$|\?)/i.test(source));
+  const source = stream?.sourceUrl || stream?.url || stream?.src || stream?.file || stream?.streamUrl || stream?.manifestUrl || "";
+  const isHls = Boolean(stream?.isHLS || stream?.isHls || stream?.type === "hls" || stream?.mimeType?.includes("mpegurl") || /\.m3u8(?:$|\?)/i.test(source));
 
   useEffect(() => {
     const video = videoRef.current;
@@ -157,13 +157,13 @@ export default function AnimeHub() {
         resolveAnimeStream(unitId, item.provider || selected?.provider || provider, language),
         getAnimeTracks(unitId, item.provider || selected?.provider || provider, language).catch(() => null),
       ]);
-      const video = payload?.type === "video" ? payload?.streams?.[0] : payload?.streams?.[0];
-      const fallback = payload?.sourceUrl || payload?.url || payload?.src || payload?.streamUrl;
-      const resolved = video || (fallback ? { sourceUrl: fallback, isHLS: /\.m3u8(?:$|\?)/i.test(fallback) } : null);
+      const video = payload?.streams?.[0] || payload?.stream || payload?.video || payload?.data?.streams?.[0] || null;
+      const fallback = payload?.sourceUrl || payload?.url || payload?.src || payload?.streamUrl || payload?.manifestUrl || payload?.data?.sourceUrl || payload?.data?.url;
+      const resolved = (typeof video === "string" ? { sourceUrl: video } : video) || (fallback ? { sourceUrl: fallback, isHLS: /\.m3u8(?:$|\?)/i.test(fallback) } : null);
       if (!resolved?.sourceUrl && !resolved?.url && !resolved?.src) {
         setMessage("The provider did not return a playable stream URL. Try another provider or episode.");
       } else {
-        const tracks = Array.isArray(tracksPayload) ? tracksPayload : tracksPayload?.tracks || tracksPayload?.subtitles || tracksPayload?.captions || [];
+        const tracks = Array.isArray(tracksPayload) ? tracksPayload : tracksPayload?.tracks || tracksPayload?.subtitles || tracksPayload?.captions || tracksPayload?.data?.subtitles || [];
         setStream({ ...resolved, sourceUrl: resolved.sourceUrl || resolved.url || resolved.src || resolved.file, isHLS: resolved.isHLS ?? (resolved.type === "hls" || /\\.m3u8(?:$|\\?)/i.test(resolved.sourceUrl || resolved.url || resolved.src || resolved.file || "")), subtitles: resolved.subtitles || tracks });
       }
     } catch (error) {
