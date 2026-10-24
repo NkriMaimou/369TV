@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "/api/anime";
+const DEFAULT_API_URL = "https://three69tv-anime-api.onrender.com";
 
 export function getAnimeApiUrl() {
   return (import.meta.env?.VITE_ANIME_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
