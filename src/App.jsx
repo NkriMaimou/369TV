@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "./App.css";
 import ExploreHub from "./ExploreHub.jsx";
 import "./ExploreHub.css";
+import AnimeHub from "./AnimeHub.jsx";
 
 const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
 const TMDB = "https://api.themoviedb.org/3";
@@ -13,8 +14,8 @@ const SERVERS = [
 ["sigma", "Sigma"], ["alfa", "Alfa"], ["beta", "Beta"], ["gama", "Gama"],
 ["catflix", "Catflix"], ["hexa", "Hexa"], ["delta", "Delta"],
 ];
-const BASE_LIBRARY_TABS = ["search", "watchlist", "favorites", "history"];
-const LIBRARY_TAB_LABELS = { search: "Discover", watchlist: "Watchlist", favorites: "Favorites", history: "Continue Watching" };
+const BASE_LIBRARY_TABS = ["search", "watchlist", "favorites", "history", "anime"];
+const LIBRARY_TAB_LABELS = { search: "Discover", watchlist: "Watchlist", favorites: "Favorites", history: "Continue Watching", anime: "Anime · Anime SDK" };
 const STREAMING_PROVIDERS = [
   { id: 8, name: "Netflix", className: "netflix", mark: "N" },
 { id: 9, name: "Prime Video", className: "prime", mark: "prime" },
@@ -1229,6 +1230,7 @@ export default function App() {
                 </>}
                 </section>
                 </>}
+                {activeTab === "anime" && <AnimeHub />}
                 {activeTab === "watchlist" && <LibraryGrid title="Your Watchlist" items={watchlist} empty="Save movies and shows with + to watch them later." onOpen={(item) => choose(item, item._mediaType || "movie")} onRemove={(item) => toggleWatchlist(item, item._mediaType || "movie")} statuses={statuses} onStatus={setItemStatus} renderActions={renderPosterActions} />}
                 {activeTab === "favorites" && <LibraryGrid title="Favorites" items={favorites} empty="Use ☆ on a title to save it here." onOpen={(item) => choose(item, item._mediaType || "movie")} onRemove={(item) => toggleFavorite(item, item._mediaType || "movie")} renderActions={renderPosterActions} />}
                 {activeTab === "history" && <section className="discovery-section"><h2>Continue Watching</h2>{[["movie", "Movies"], ["tv", "TV Shows"]].map(([kind, label]) => <div className="library-group" key={kind}><h3>{label}</h3><div className="discovery-track">{history[kind].length ? history[kind].map((item) => <article className="discovery-card" key={`${kind}-${item.id}`}><button className="poster-button" onClick={() => choose(item, kind)}><Poster item={item} className="discovery-poster" /><span className="card-info"><strong>{mediaName(item)}</strong><small>{kind === "tv" ? `Resume S${item._lastSeason || 1} E${item._lastEpisode || 1}` : "Movie"} · {yearText(item)}</small></span></button>{renderPosterActions(item, kind)}<button className="remove-chip" onClick={() => removeFromHistory(kind, item.id)}>Remove</button></article>) : <p className="empty-state">Nothing here yet.</p>}</div></div>)}</section>}
