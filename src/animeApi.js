@@ -1,22 +1,36 @@
 const DEFAULT_API_URL = "https://three69tv-anime-api.onrender.com";
 
 export function getAnimeApiUrl() {
-  return (import.meta.env?.VITE_ANIME_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
+  const configured = import.meta.env?.VITE_ANIME_API_URL;
+  return (configured || DEFAULT_API_URL).replace(/\/+$/, "");
 }
 
 async function request(path, { signal } = {}) {
-  const response = await fetch(`${getAnimeApiUrl()}${path}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
+  let response;
+
+  try {
+    response = await fetch(`${getAnimeApiUrl()}${path}`, {
+      headers: { Accept: "application/json" },
+      signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    throw new Error(
+      `Could not reach the Anime API at ${getAnimeApiUrl()}. Check the API URL, browser Network tab, and CORS settings.`
+    );
+  }
+
   if (!response.ok) {
     let detail = "";
     try {
       const payload = await response.json();
       detail = payload?.error || payload?.message || "";
-    } catch {}
+    } catch {
+      // The server may return a non-JSON error page.
+    }
     throw new Error(detail || `Anime API returned HTTP ${response.status}`);
   }
+
   return response.json();
 }
 
