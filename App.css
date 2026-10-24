@@ -1158,6 +1158,93 @@ body { overflow-x: clip; }
   --text-muted: #606575;
 }
 :root[data-theme="dark"], :root:not([data-theme]) { color-scheme: dark; }
+
+/* Additional appearance presets */
+:root[data-theme="girly"] {
+  color-scheme: light;
+  --surface-page: #fff1f7;
+  --surface-panel: #fff8fc;
+  --surface-input: #ffffff;
+  --surface-border: #f0c9df;
+  --text-main: #542d46;
+  --text-muted: #916a83;
+}
+:root[data-theme="minimal"] {
+  color-scheme: light;
+  --surface-page: #f3f4f6;
+  --surface-panel: #ffffff;
+  --surface-input: #ffffff;
+  --surface-border: #d9dce2;
+  --text-main: #292d35;
+  --text-muted: #686f7b;
+}
+:root[data-theme="vaporwave"] {
+  color-scheme: dark;
+  --surface-page: #160d2b;
+  --surface-panel: #21143b;
+  --surface-input: #180e2d;
+  --surface-border: #69419a;
+  --text-main: #fff0ff;
+  --text-muted: #d0b5e8;
+}
+:root[data-theme="girly"] body,
+:root[data-theme="girly"] .app,
+:root[data-theme="minimal"] body,
+:root[data-theme="minimal"] .app { color: var(--text-main); background: var(--surface-page); }
+:root[data-theme="girly"] .panel,
+:root[data-theme="girly"] .info-panel,
+:root[data-theme="girly"] .discovery-card,
+:root[data-theme="girly"] .library-card,
+:root[data-theme="girly"] .card-info,
+:root[data-theme="girly"] .settings-menu,
+:root[data-theme="girly"] .collection-modal,
+:root[data-theme="minimal"] .panel,
+:root[data-theme="minimal"] .info-panel,
+:root[data-theme="minimal"] .discovery-card,
+:root[data-theme="minimal"] .library-card,
+:root[data-theme="minimal"] .card-info,
+:root[data-theme="minimal"] .settings-menu,
+:root[data-theme="minimal"] .collection-modal {
+  color: var(--text-main);
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+:root[data-theme="girly"] input,
+:root[data-theme="girly"] select,
+:root[data-theme="girly"] textarea,
+:root[data-theme="minimal"] input,
+:root[data-theme="minimal"] select,
+:root[data-theme="minimal"] textarea {
+  color: var(--text-main);
+  background: var(--surface-input);
+  border-color: var(--surface-border);
+}
+:root[data-theme="girly"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item),
+:root[data-theme="minimal"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item) { color: var(--text-main); border-color: var(--surface-border); }
+:root[data-theme="vaporwave"] body,
+:root[data-theme="vaporwave"] .app { color: var(--text-main); background: var(--surface-page); }
+:root[data-theme="vaporwave"] .panel,
+:root[data-theme="vaporwave"] .info-panel,
+:root[data-theme="vaporwave"] .discovery-card,
+:root[data-theme="vaporwave"] .library-card,
+:root[data-theme="vaporwave"] .card-info,
+:root[data-theme="vaporwave"] .settings-menu,
+:root[data-theme="vaporwave"] .collection-modal,
+:root[data-theme="vaporwave"] .autocomplete-panel {
+  color: var(--text-main);
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+:root[data-theme="vaporwave"] input,
+:root[data-theme="vaporwave"] select,
+:root[data-theme="vaporwave"] textarea { color: var(--text-main); background: var(--surface-input); border-color: var(--surface-border); }
+:root[data-theme="vaporwave"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item) { color: var(--text-main); border-color: var(--surface-border); }
+:root[data-theme="vaporwave"] .tabs .active,
+:root[data-theme="vaporwave"] .library-tabs .active { color: var(--text-main); box-shadow: 0 0 14px #ff4fd844; }
+.theme-swatch-girly { background: linear-gradient(135deg, #fff1f7 50%, #e879b9 50%); }
+.theme-swatch-minimal { background: linear-gradient(135deg, #f3f4f6 50%, #555b66 50%); }
+.theme-swatch-vaporwave { background: linear-gradient(135deg, #ff4fd8 50%, #35e7ff 50%); }
+
 :root[data-theme="amoled"] { color-scheme: dark; }
 :root[data-theme="light"] body,
 :root[data-theme="light"] .app { color: var(--text-main); background: var(--surface-page); }
@@ -1195,7 +1282,17 @@ body { overflow-x: clip; }
 }
 :root[data-theme="light"] .cinematic-copy,
 :root[data-theme="light"] .cinematic-copy h1,
-:root[data-theme="light"] .cinematic-overview { color: #fff; }
+:root[data-theme="light"] .cinematic-overview { color: var(--text-main); }
+:root[data-theme="light"] .cinematic-hero::after {
+  background: linear-gradient(90deg, rgb(244 245 248 / 92%) 0%, rgb(244 245 248 / 30%) 78%),
+    linear-gradient(0deg, #f4f5f8 0%, rgb(244 245 248 / 70%) 13%, transparent 65%);
+}
+:root[data-theme="light"] .autocomplete-heading,
+:root[data-theme="light"] .autocomplete-item,
+:root[data-theme="light"] .autocomplete-item strong,
+:root[data-theme="light"] .autocomplete-open { color: var(--text-main); }
+:root[data-theme="light"] .autocomplete-heading span,
+:root[data-theme="light"] .autocomplete-item small { color: var(--text-muted); }
 :root[data-theme="light"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item) {
   color: var(--text-main);
   border-color: var(--surface-border);
@@ -1213,6 +1310,9 @@ body { overflow-x: clip; }
 :root[data-contrast="high"] .discovery-card,
 :root[data-contrast="high"] .library-card { border-width: 2px; }
 :root[data-contrast="high"][data-theme="light"] body { color: #000; }
+:root[data-contrast="high"][data-theme="light"] .cinematic-copy,
+:root[data-contrast="high"][data-theme="light"] .cinematic-copy h1,
+:root[data-contrast="high"][data-theme="light"] .cinematic-overview { color: #000; }
 :root[data-contrast="high"][data-theme="light"] .muted { color: #3b3e49; }
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline-color: var(--accent); }
