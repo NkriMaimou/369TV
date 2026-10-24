@@ -1774,3 +1774,20 @@ body { background: var(--background-start, #090a0f); }
   margin-right: calc(50% - 50vw);
   border-radius: 0;
 }
+
+
+/* Homepage should run edge-to-edge; the app's default padding was creating the side bars. */
+.app:has(.topbar.home-overlay-header) {
+  padding-left: 0;
+  padding-right: 0;
+}
+.app:has(.topbar.home-overlay-header) .cinematic-hero.hero-fullbleed {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+/* Keep horizontal shelves aligned to the viewport edges on the homepage. */
+.app:has(.topbar.home-overlay-header) .home-panel {
+  width: 100%;
+  max-width: none;
+}
