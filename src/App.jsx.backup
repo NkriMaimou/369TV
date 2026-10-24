@@ -1,0 +1,517 @@
+import { useState, useRef, useEffect } from "react";
+import "./App.css";
+
+const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
+const TMDB = "https://api.themoviedb.org/3";
+
+async function tmdbFetch(path, signal) {
+  const response = await fetch(`${TMDB}${path}`, {
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: "application/json",
+    },
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB returned HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export default function App() {
+  const [type, setType] = useState("movie");
+  const searchInput = useRef(null);
+
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState(null);
+
+  const [season, setSeason] = useState("1");
+  const [episode, setEpisode] = useState("1");
+  const [seasons, setSeasons] = useState([]);
+  const [episodes, setEpisodes] = useState([]);
+
+  const [server, setServer] = useState("auto");
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
+
+  async function search(event) {
+    event?.preventDefault();
+
+    if (!TOKEN) {
+      setError("TMDB token missing. Check .env.local and restart Vite.");
+      return;
+    }
+
+    if (!query.trim()) {
+      setError("Enter a movie or TV show name.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSelected(null);
+    setShowPlayer(false);
+    setResults([]);
+    setSeasons([]);
+    setEpisodes([]);
+
+    try {
+      const endpoint = type === "movie" ? "movie" : "tv";
+      const data = await tmdbFetch(
+        `/search/${endpoint}?query=${encodeURIComponent(
+          query.trim()
+        )}&include_adult=false&language=en-US&page=1`
+      );
+
+      setResults(data.results || []);
+
+      if (!data.results?.length) {
+        setError("No matching titles found.");
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setError(e.message || "Search failed.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const title = selected?.title || selected?.name || "";
+  const date = selected?.release_date || selected?.first_air_date || "";
+
+  const playerUrl = selected
+  ? "https://vidnest.fun/" +
+  (type === "movie"
+  ? `movie/${selected.id}`
+  : `tv/${selected.id}/${season}/${episode}`) +
+  (server !== "auto"
+  ? `?server=${encodeURIComponent(server)}`
+  : "")
+  : "";
+
+  function choose(item) {
+    setSelected(item);
+    setResults([]);
+    setShowPlayer(true);
+    setError("");
+    setSeason("1");
+    setEpisode("1");
+    setSeasons([]);
+    setEpisodes([]);
+  }
+
+  function backToSearch() {
+    setShowPlayer(false);
+    setSelected(null);
+    setSeasons([]);
+    setEpisodes([]);
+    setError("");
+    searchInput.current?.focus();
+  }
+
+  // Fetch the actual season list for the selected TV show.
+  useEffect(() => {
+    if (!selected || type !== "tv" || !TOKEN) return;
+
+    const controller = new AbortController();
+
+    async function loadSeasons() {
+      try {
+        const data = await tmdbFetch(
+          `/tv/${selected.id}?language=en-US`,
+          controller.signal
+        );
+
+        setSeasons(
+          (data.seasons || []).filter(
+            (item) => item.season_number >= 0
+          )
+        );
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setError("Could not load seasons: " + e.message);
+        }
+      }
+    }
+
+    loadSeasons();
+
+    return () => controller.abort();
+  }, [selected, type]);
+
+  // Fetch the actual episodes for the chosen season.
+  useEffect(() => {
+    if (!selected || type !== "tv" || !TOKEN || season === "") {
+      setEpisodes([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadEpisodes() {
+      setEpisodesLoading(true);
+      setEpisodes([]);
+      setError("");
+
+      try {
+        const data = await tmdbFetch(
+          `/tv/${selected.id}/season/${encodeURIComponent(
+            season
+          )}?language=en-US`,
+          controller.signal
+        );
+
+        const list = data.episodes || [];
+        setEpisodes(list);
+
+        if (list.length) {
+          setEpisode(String(list[0].episode_number));
+        } else {
+          setError("No episodes are listed for this season.");
+        }
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setError("Could not load episodes: " + e.message);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setEpisodesLoading(false);
+        }
+      }
+    }
+
+    loadEpisodes();
+
+    return () => controller.abort();
+  }, [selected, type, season]);
+
+  return (
+    <main className="app">
+    <header className="topbar">
+    <div className="brand">
+    <span>369</span> NKRI TV <small></small>
+    </div>
+
+    {showPlayer && (
+      <button type="button" onClick={backToSearch}>
+      Back to search
+      </button>
+    )}
+    </header>
+
+    {!showPlayer && (
+      <>
+      <section className="hero">
+      <p className="eyebrow">YOUR PERSONAL MEDIA HUB</p>
+      </section>
+
+      <section className="panel">
+      <div className="tabs">
+      <button
+      className={type === "movie" ? "active" : ""}
+      onClick={() => {
+        setType("movie");
+        setResults([]);
+        setSelected(null);
+        setError("");
+        searchInput.current?.focus();
+      }}
+      >
+      Movies
+      </button>
+
+      <button
+      className={type === "tv" ? "active" : ""}
+      onClick={() => {
+        setType("tv");
+        setResults([]);
+        setSelected(null);
+        setError("");
+        searchInput.current?.focus();
+      }}
+      >
+      TV Shows
+      </button>
+      </div>
+
+      <form className="searchrow" onSubmit={search}>
+      <input
+      ref={searchInput}
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      placeholder={
+        type === "movie"
+        ? "Search movie titles..."
+        : "Search TV show titles..."
+      }
+      aria-label="Search title"
+      />
+
+      <button className="primary" disabled={loading}>
+      {loading ? "Searching..." : "Search"}
+      </button>
+      </form>
+
+      {error && <p className="error">{error}</p>}
+
+      {results.length > 0 && (
+        <section className="results-section">
+        <h2>
+        Search results <small>({results.length})</small>
+        </h2>
+
+        <div className="results-list">
+        {results.map((item) => {
+          const name = item.title || item.name || "Untitled";
+          const year = (
+            item.release_date ||
+            item.first_air_date ||
+            ""
+          ).slice(0, 4);
+
+          const image = item.poster_path
+          ? "https://image.tmdb.org/t/p/w185" +
+          item.poster_path
+          : "";
+
+          return (
+            <button
+            type="button"
+            className="result"
+            key={item.id}
+            onClick={() => choose(item)}
+            >
+            {image ? (
+              <img src={image} alt="" />
+            ) : (
+              <div className="result-poster">
+              NO POSTER
+              </div>
+            )}
+
+            <span className="result-info">
+            <strong>{name}</strong>
+            <small>
+            {year || "Year unknown"} · TMDB {item.id}
+            </small>
+            <small>
+            Rating:{" "}
+            {Number(item.vote_average || 0).toFixed(1)}
+            {" / 10"}
+            </small>
+            <span className="result-overview">
+            {item.overview ||
+              "No description available."}
+              </span>
+              </span>
+              </button>
+          );
+        })}
+        </div>
+        </section>
+      )}
+      </section>
+      </>
+    )}
+
+    {showPlayer && selected && (
+      <section className="details player-page">
+      <div className="metadata">
+      <p className="eyebrow">
+      {type === "movie" ? "MOVIE PLAYER" : "TV SHOW PLAYER"}
+      {" · TMDB ID: "}
+      {selected.id}
+      </p>
+
+      <h2>{title}</h2>
+
+      <p className="muted">
+      {yearLabel(date)} · Rating{" "}
+      {Number(selected.vote_average || 0).toFixed(1)}
+      {" / 10"}
+      </p>
+
+      {/* Video source appears first, above all playback controls. */}
+      <div className="embedded-player">
+      <div className="embedded-player-heading">
+      <strong>{title}</strong>
+      <button type="button" onClick={backToSearch}>
+      Back to search
+      </button>
+      </div>
+
+      <div className="player-frame">
+      <iframe
+      key={playerUrl}
+      src={playerUrl}
+      title={`VidNest player: ${title}`}
+      allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+      allowFullScreen
+      />
+      </div>
+
+      <p className="muted">
+      Playback and available controls are provided by VidNest.
+      </p>
+      </div>
+
+      {/* Only TV shows display season and episode selectors. */}
+      {type === "tv" && (
+        <section className="episode-selector">
+        <h3>Episodes</h3>
+
+        <div className="episode-fields">
+        <div>
+        <label htmlFor="season">Season</label>
+
+        <select
+        id="season"
+        value={season}
+        onChange={(e) => {
+          setSeason(e.target.value);
+        }}
+        >
+        {seasons.map((item) => (
+          <option
+          key={item.season_number}
+          value={String(item.season_number)}
+          >
+          {item.name ||
+            `Season ${item.season_number}`}
+            {item.episode_count != null
+              ? ` (${item.episode_count} episodes)`
+              : ""}
+              </option>
+        ))}
+        </select>
+        </div>
+        </div>
+
+        <label htmlFor="episode-list">Choose episode</label>
+
+        {episodesLoading && (
+          <p className="muted">Loading episodes...</p>
+        )}
+
+        {!episodesLoading && episodes.length > 0 && (
+          <div
+          className="episode-list"
+          id="episode-list"
+          role="listbox"
+          aria-label="Episodes"
+          >
+          {episodes.map((item) => {
+            const active =
+            String(item.episode_number) === episode;
+
+            return (
+              <button
+              type="button"
+              role="option"
+              aria-selected={active}
+              key={item.id || item.episode_number}
+              className={
+                "episode-item" + (active ? " active" : "")
+              }
+              onClick={() =>
+                setEpisode(String(item.episode_number))
+              }
+              >
+              {item.still_path ? (
+                <img
+                className="episode-still"
+                src={
+                  "https://image.tmdb.org/t/p/w185" +
+                  item.still_path
+                }
+                alt=""
+                loading="lazy"
+                />
+              ) : (
+                <div className="episode-still episode-no-image">
+                E{item.episode_number}
+                </div>
+              )}
+
+              <span className="episode-info">
+              <strong>
+              E{String(item.episode_number).padStart(2, "0")}
+              {" · "}
+              {item.name || "Untitled episode"}
+              </strong>
+
+              <small>
+              {item.air_date || "Air date unknown"}
+              {item.runtime
+                ? ` · ${item.runtime} min`
+                : ""}
+                </small>
+
+                <span>
+                {item.overview ||
+                  "No episode description available."}
+                  </span>
+                  </span>
+                  </button>
+            );
+          })}
+          </div>
+        )}
+
+        {episodes.length > 0 && (
+          <p className="muted">
+          Selected: Season {season}, Episode {episode}
+          </p>
+        )}
+        </section>
+      )}
+
+      <div className="player-settings">
+      <label htmlFor="server">VidNest server</label>
+
+      <select
+      id="server"
+      value={server}
+      onChange={(e) => setServer(e.target.value)}
+      >
+      <option value="auto">Automatic</option>
+      <option value="lamda">Lamda</option>
+      <option value="primesrc">PrimeSRC</option>
+      <option value="sigma">Sigma</option>
+      <option value="alfa">Alfa</option>
+      <option value="beta">Beta</option>
+      <option value="gama">Gama</option>
+      <option value="catflix">Catflix</option>
+      <option value="hexa">Hexa</option>
+      <option value="delta">Delta</option>
+      </select>
+      </div>
+
+      {error && <p className="error">{error}</p>}
+
+      <button
+      type="button"
+      className="primary"
+      onClick={backToSearch}
+      >
+      Search another title
+      </button>
+      </div>
+      </section>
+    )}
+
+    <footer></footer>
+    </main>
+  );
+}
+
+function yearLabel(date) {
+  return date ? date.slice(0, 4) : "Release date unknown";
+}

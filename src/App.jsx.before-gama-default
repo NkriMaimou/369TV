@@ -1,0 +1,921 @@
+import { useState, useRef, useEffect } from "react";
+import "./App.css";
+
+const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
+const TMDB = "https://api.themoviedb.org/3";
+
+async function tmdbFetch(path, signal) {
+  const response = await fetch(`${TMDB}${path}`, {
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: "application/json",
+    },
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB returned HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export default function App() {
+  const [type, setType] = useState("movie");
+  const searchInput = useRef(null);
+
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState(null);
+
+  const [season, setSeason] = useState("1");
+  const [episode, setEpisode] = useState("1");
+  const [seasons, setSeasons] = useState([]);
+  const [episodes, setEpisodes] = useState([]);
+
+  const [server, setServer] = useState("auto");
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
+  const [history, setHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem("369-nkri-tv-history");
+      const parsed = saved ? JSON.parse(saved) : { movie: [], tv: [] };
+      return {
+        movie: Array.isArray(parsed.movie) ? parsed.movie : [],
+        tv: Array.isArray(parsed.tv) ? parsed.tv : [],
+      };
+    } catch {
+      return { movie: [], tv: [] };
+    }
+  });
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const saved = localStorage.getItem("369-nkri-tv-favorites");
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
+  const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [trendingTvShows, setTrendingTvShows] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("369-nkri-tv-history", JSON.stringify(history));
+    } catch {
+      // History still works for this session if browser storage is unavailable.
+    }
+  }, [history]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("369-nkri-tv-favorites", JSON.stringify(favorites));
+    } catch {
+      // Favorites remain available for this session if browser storage is unavailable.
+    }
+  }, [favorites]);
+
+  // Load homepage discovery shelves from TMDB.
+  useEffect(() => {
+    if (!TOKEN) {
+      setFeaturedLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    async function loadFeatured() {
+      setFeaturedLoading(true);
+      const requests = [
+        ["nowPlaying", "/movie/now_playing?language=en-US&page=1"],
+        ["trendingMovies", "/trending/movie/day?language=en-US"],
+        ["trendingTv", "/trending/tv/day?language=en-US"],
+      ];
+      try {
+        const responses = await Promise.all(requests.map(async ([key, path]) => {
+          try {
+            const data = await tmdbFetch(path, controller.signal);
+            return [key, data.results || []];
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+            return [key, []];
+          }
+        }));
+        if (controller.signal.aborted) return;
+        for (const [key, items] of responses) {
+          if (key === "nowPlaying") setNowPlayingMovies(items);
+          if (key === "trendingMovies") setTrendingMovies(items);
+          if (key === "trendingTv") setTrendingTvShows(items);
+        }
+      } catch (error) {
+        // Keep the rest of the home screen usable if discovery data is unavailable.
+      } finally {
+        if (!controller.signal.aborted) setFeaturedLoading(false);
+      }
+    }
+    loadFeatured();
+    return () => controller.abort();
+  }, []);
+
+  function isFavorite(item, itemType = type) {
+    return favorites.some(
+      (favorite) => favorite.id === item.id && favorite._mediaType === itemType
+    );
+  }
+
+  function toggleFavorite(item, itemType = type) {
+    setFavorites((current) => {
+      const exists = current.some(
+        (favorite) => favorite.id === item.id && favorite._mediaType === itemType
+      );
+      if (exists) {
+        return current.filter(
+          (favorite) => !(favorite.id === item.id && favorite._mediaType === itemType)
+        );
+      }
+      return [{ ...item, _mediaType: itemType }, ...current].slice(0, 100);
+    });
+  }
+
+  function removeFavorite(id, itemType) {
+    setFavorites((current) => current.filter(
+      (item) => !(item.id === id && item._mediaType === itemType)
+    ));
+  }
+
+  function removeFromHistory(historyType, id) {
+    setHistory((current) => ({
+      ...current,
+      [historyType]: current[historyType].filter((item) => item.id !== id),
+    }));
+  }
+
+  async function search(event) {
+    event?.preventDefault();
+
+    if (!TOKEN) {
+      setError("TMDB token missing. Check .env.local and restart Vite.");
+      return;
+    }
+
+    if (!query.trim()) {
+      setError("Enter a movie or TV show name.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSelected(null);
+    setShowPlayer(false);
+    setResults([]);
+    setSeasons([]);
+    setEpisodes([]);
+
+    try {
+      const endpoint = type === "movie" ? "movie" : "tv";
+      const data = await tmdbFetch(
+        `/search/${endpoint}?query=${encodeURIComponent(
+          query.trim()
+        )}&include_adult=false&language=en-US&page=1`
+      );
+
+      setResults(data.results || []);
+      setFocusedResultIndex(-1);
+
+      if (!data.results?.length) {
+        setError("No matching titles found.");
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setError(e.message || "Search failed.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Debounced live search: update the dropdown as the user types.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (showPlayer) return;
+    if (trimmed.length < 2) {
+      setResults([]);
+      setFocusedResultIndex(-1);
+      setLoading(false);
+      setError("");
+      return;
+    }
+    if (!TOKEN) {
+      setError("TMDB token missing. Check .env.local and restart Vite.");
+      return;
+    }
+
+    // Clear stale feedback immediately, then wait briefly before querying TMDB.
+    setError("");
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const endpoint = type === "movie" ? "movie" : "tv";
+        const data = await tmdbFetch(
+          `/search/${endpoint}?query=${encodeURIComponent(trimmed)}&include_adult=false&language=en-US&page=1`,
+          controller.signal
+        );
+        if (!controller.signal.aborted) {
+          setResults(data.results || []);
+          setFocusedResultIndex(-1);
+        }
+      } catch (e) {
+        if (e.name !== "AbortError" && !controller.signal.aborted) {
+          setError(e.message || "Search failed.");
+          setResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [query, type, showPlayer]);
+
+
+  const title = selected?.title || selected?.name || "";
+  const date = selected?.release_date || selected?.first_air_date || "";
+
+  const playerUrl = selected
+  ? "https://vidnest.fun/" +
+  (type === "movie"
+  ? `movie/${selected.id}`
+  : `tv/${selected.id}/${season}/${episode}`) +
+  (server !== "auto"
+  ? `?server=${encodeURIComponent(server)}`
+  : "")
+  : "";
+
+  function choose(item, itemType = type) {
+    setType(itemType);
+    setSelected(item);
+    setHistory((current) => {
+      const currentList = current[itemType].filter((entry) => entry.id !== item.id);
+      return {
+        ...current,
+        [itemType]: [item, ...currentList].slice(0, 12),
+      };
+    });
+    setResults([]);
+    setFocusedResultIndex(-1);
+    setShowPlayer(true);
+    setError("");
+    setSeason("1");
+    setEpisode("1");
+    setSeasons([]);
+    setEpisodes([]);
+  }
+
+  function backToSearch() {
+    setShowPlayer(false);
+    setSelected(null);
+    setSeasons([]);
+    setEpisodes([]);
+    setError("");
+    // Wait for the search screen to render again before focusing its input.
+    requestAnimationFrame(() => searchInput.current?.focus());
+  }
+
+  // Backspace and Escape return from the player screen to search.
+  useEffect(() => {
+    if (!showPlayer) return;
+
+    function handlePlayerBack(event) {
+      if (event.key !== "Backspace" && event.key !== "Escape") return;
+      event.preventDefault();
+      backToSearch();
+    }
+
+    document.addEventListener("keydown", handlePlayerBack);
+    return () => document.removeEventListener("keydown", handlePlayerBack);
+  }, [showPlayer]);
+
+  // Global keyboard navigation. Arrow keys move through visible controls/cards on both pages.
+  useEffect(() => {
+    function handleArrowNavigation(event) {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      const target = event.target;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === "select" || tag === "textarea" || target?.isContentEditable) return;
+
+      // In the search box, ArrowDown opens keyboard navigation into the results dropdown.
+      if (target === searchInput.current && event.key === "ArrowDown" && results.length) {
+        event.preventDefault();
+        setFocusedResultIndex((current) => {
+          const next = current < results.length - 1 ? current + 1 : 0;
+          requestAnimationFrame(() => {
+            document.querySelector(`[data-search-result-index="${next}"]`)?.focus();
+          });
+          return next;
+        });
+        return;
+      }
+
+      // Leave arrow keys to normal text editing while typing in non-search inputs.
+      if (tag === "input" && target !== searchInput.current) return;
+
+      const controls = Array.from(document.querySelectorAll(
+        ".app button:not(:disabled), .app input:not(:disabled), .app select:not(:disabled), .app a[href], .app [tabindex]:not([tabindex='-1'])"
+      )).filter((element) => {
+        if (element.closest("[hidden]")) return false;
+        const style = window.getComputedStyle(element);
+        return style.display !== "none" && style.visibility !== "hidden" && element.getClientRects().length > 0;
+      });
+      if (!controls.length) return;
+      const currentIndex = controls.indexOf(document.activeElement);
+      const forward = event.key === "ArrowDown" || event.key === "ArrowRight";
+      let nextIndex;
+      if (currentIndex < 0) nextIndex = 0;
+      else nextIndex = (currentIndex + (forward ? 1 : -1) + controls.length) % controls.length;
+      event.preventDefault();
+      controls[nextIndex]?.focus();
+    }
+    document.addEventListener("keydown", handleArrowNavigation);
+    return () => document.removeEventListener("keydown", handleArrowNavigation);
+  }, [results]);
+
+  // Fetch the actual season list for the selected TV show.
+  useEffect(() => {
+    if (!selected || type !== "tv" || !TOKEN) return;
+
+    const controller = new AbortController();
+
+    async function loadSeasons() {
+      try {
+        const data = await tmdbFetch(
+          `/tv/${selected.id}?language=en-US`,
+          controller.signal
+        );
+
+        setSeasons(
+          (data.seasons || []).filter(
+            (item) => item.season_number >= 0
+          )
+        );
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setError("Could not load seasons: " + e.message);
+        }
+      }
+    }
+
+    loadSeasons();
+
+    return () => controller.abort();
+  }, [selected, type]);
+
+  // Fetch the actual episodes for the chosen season.
+  useEffect(() => {
+    if (!selected || type !== "tv" || !TOKEN || season === "") {
+      setEpisodes([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadEpisodes() {
+      setEpisodesLoading(true);
+      setEpisodes([]);
+      setError("");
+
+      try {
+        const data = await tmdbFetch(
+          `/tv/${selected.id}/season/${encodeURIComponent(
+            season
+          )}?language=en-US`,
+          controller.signal
+        );
+
+        const list = data.episodes || [];
+        setEpisodes(list);
+
+        if (list.length) {
+          setEpisode(String(list[0].episode_number));
+        } else {
+          setError("No episodes are listed for this season.");
+        }
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setError("Could not load episodes: " + e.message);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setEpisodesLoading(false);
+        }
+      }
+    }
+
+    loadEpisodes();
+
+    return () => controller.abort();
+  }, [selected, type, season]);
+
+  return (
+    <main className="app">
+      <style>{`
+        /* Use the full available browser window instead of a centered, capped container. */
+        .app { width: 100%; max-width: none; min-height: 100vh; margin: 0; padding: clamp(12px, 2vw, 32px); }
+        /* Player and episode-selector polish */
+        .player-page { width: 100%; }
+        .player-page .metadata { width: 100%; min-width: 0; }
+        .player-page > .metadata > h2 { margin-bottom: 6px; font-size: clamp(1.6rem, 3vw, 2.25rem); line-height: 1.15; }
+        .playback-layout { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); align-items: start; gap: 18px; margin-top: 22px; }
+        .playback-main { min-width: 0; }
+        .embedded-player { margin-top: 0; padding: clamp(12px, 2vw, 20px); background: linear-gradient(145deg, #11121a, #0b0c12); border: 1px solid #292b38; border-radius: 18px; box-shadow: 0 16px 42px rgba(0,0,0,.28); }
+        .embedded-player-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .embedded-player-heading strong { font-size: 1rem; line-height: 1.4; }
+        .player-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #050507; border: 1px solid #343644; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.32); }
+        .player-frame iframe { display: block; width: 100%; height: 100%; min-height: 0; border: 0; }
+        .search-empty { padding: 16px 10px; color: #a6a8b6; font-size: .9rem; }
+        .search-wrap { position: relative; z-index: 5; }
+        .search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 20; max-height: min(66vh, 560px); overflow-y: auto; padding: 8px; background: #101119; border: 1px solid #393b4a; border-radius: 14px; box-shadow: 0 20px 48px rgba(0,0,0,.58); }
+        .search-dropdown-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 7px 10px; color: #a6a8b6; font-size: .8rem; }
+        .search-dropdown .results-list { display: grid; gap: 6px; }
+        .discovery-section { margin-top: 30px; }
+        .discovery-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 13px; }
+        .discovery-heading h2 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.35rem); font-weight: 800; letter-spacing: -.02em; }
+        .discovery-track { display: grid; grid-auto-columns: minmax(142px, 172px); grid-auto-flow: column; gap: 14px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: #484957 #151620; }
+        .discovery-card { position: relative; min-width: 0; overflow: hidden; scroll-snap-align: start; background: #101119; border: 1px solid #292b38; border-radius: 12px; transition: transform .16s ease, border-color .16s ease; }
+        .discovery-card:hover { transform: translateY(-3px); border-color: #a63442; }
+        .discovery-poster-button { display: block; width: 100%; padding: 0; text-align: left; color: #f5f5f7; background: transparent; border: 0; cursor: pointer; }
+        .discovery-poster { display: block; width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: #1c1d27; }
+        .discovery-no-poster { display: grid; place-items: center; color: #a6a8b6; font-size: .8rem; }
+        .discovery-card-info { display: grid; gap: 5px; padding: 10px; }
+        .discovery-card-info strong { display: -webkit-box; overflow: hidden; font-size: .88rem; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+        .discovery-card-info small { color: #a6a8b6; font-size: .76rem; }
+        .discovery-favorite { position: absolute; top: 7px; right: 7px; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; color: #fff; background: rgba(7,8,12,.88); border: 1px solid rgba(255,255,255,.22); border-radius: 50%; font-size: 18px; cursor: pointer; }
+        .discovery-favorite.active { color: #ffcf5a; border-color: #ffcf5a; }
+        .discovery-loading { padding: 16px; color: #a6a8b6; background: #0d0e15; border: 1px solid #292b38; border-radius: 12px; }
+        .search-dropdown .result { flex: 1 1 auto; min-width: 0; width: 100%; }
+        .dropdown-result-row .favorite-toggle { align-self: center; }
+        .search-dropdown .result:focus-visible, .history-open:focus-visible, .favorite-open:focus-visible, .tabs button:focus-visible, .searchrow input:focus-visible, .searchrow button:focus-visible { outline: 2px solid #ef4444; outline-offset: 2px; }
+        .history-section { margin-top: 24px; }
+        .favorites-section { margin-top: 26px; }
+        .favorite-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 14px; }
+        .favorite-card { position: relative; min-width: 0; overflow: hidden; background: #101119; border: 1px solid #292b38; border-radius: 12px; }
+        .favorite-open { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 0; text-align: left; color: #f5f5f7; background: transparent; border: 0; cursor: pointer; }
+        .favorite-info { display: grid; gap: 5px; padding: 11px 10px 12px; padding-right: 36px; }
+        .favorite-info strong { font-size: .9rem; line-height: 1.35; }
+        .favorite-info small { color: #a6a8b6; font-size: .76rem; }
+        .favorite-star { position: absolute; top: 7px; left: 7px; z-index: 1; display: grid; place-items: center; width: 29px; height: 29px; padding: 0; color: #fff; background: rgba(7,8,12,.88); border: 1px solid rgba(255,255,255,.22); border-radius: 50%; font-size: 17px; cursor: pointer; }
+        .favorite-star.active { color: #ffcf5a; border-color: #ffcf5a; }
+        .favorite-remove { position: absolute; top: 7px; right: 7px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: #fff; background: rgba(7,8,12,.88); border: 1px solid rgba(255,255,255,.22); border-radius: 50%; font-size: 19px; cursor: pointer; }
+        .favorite-toggle { flex: 0 0 auto; min-height: 36px; padding: 7px 12px; color: #f5f5f7; background: #181923; border: 1px solid #3b3d4c; border-radius: 10px; cursor: pointer; }
+        .favorite-toggle.active { color: #ffcf5a; border-color: #ffcf5a; }
+        .history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
+        .history-heading h2 { margin: 0; font-size: 1.15rem; }
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 14px; }
+        .history-card { position: relative; min-width: 0; overflow: hidden; background: #101119; border: 1px solid #292b38; border-radius: 12px; transition: transform .16s ease, border-color .16s ease; }
+        .history-card:hover { transform: translateY(-2px); border-color: #9f343f; }
+        .history-open { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 0; text-align: left; color: #f5f5f7; background: transparent; border: 0; cursor: pointer; }
+        .history-poster { display: block; width: 100%; aspect-ratio: 2 / 3; object-fit: cover; background: #1c1d27; }
+        .history-poster-placeholder { display: grid; place-items: center; color: #a6a8b6; font-size: .78rem; font-weight: 750; }
+        .history-card-info { display: grid; gap: 5px; padding: 11px 10px 12px; padding-right: 30px; }
+        .history-card-info strong { font-size: .9rem; line-height: 1.35; }
+        .history-card-info small { color: #a6a8b6; font-size: .76rem; }
+        .history-remove { position: absolute; top: 7px; right: 7px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: #fff; background: rgba(7,8,12,.88); border: 1px solid rgba(255,255,255,.22); border-radius: 50%; font-size: 19px; line-height: 1; cursor: pointer; }
+        .history-remove:hover { background: #ef4444; border-color: #ef4444; }
+        .history-empty { padding: 18px; color: #a6a8b6; background: #0d0e15; border: 1px dashed #30313d; border-radius: 12px; font-size: .9rem; }
+        .episode-selector { min-width: 0; margin-top: 0; padding: clamp(12px, 1.5vw, 18px); background: linear-gradient(145deg, #11121a, #0b0c12); border: 1px solid #292b38; border-radius: 16px; box-shadow: 0 16px 42px rgba(0,0,0,.2); }
+        .episode-selector h3 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 16px; font-size: 1.2rem; }
+        .episode-selector .episode-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 16px; }
+        .episode-selector .episode-fields > div { display: grid; gap: 5px; }
+        .episode-selector label { display: block; margin: 0 0 4px; color: #c9cad5; font-size: .8rem; font-weight: 650; }
+        .episode-selector select { width: 100%; min-height: 36px; padding: 7px 10px; color: #f5f5f7; background: #151620; border: 1px solid #353746; border-radius: 9px; font-size: .86rem; color-scheme: dark; transition: border-color .16s ease, box-shadow .16s ease; }
+        .player-settings select { width: 100%; min-height: 44px; padding: 10px 12px; color: #f5f5f7; background: #151620; border: 1px solid #353746; border-radius: 10px; }
+        .episode-selector select:hover { border-color: #8f3540; }
+        .episode-selector select:focus-visible { outline: 2px solid #ef4444; outline-offset: 2px; border-color: #ef4444; }
+        .episode-list { display: grid; gap: 10px; max-height: min(72vh, 760px); overflow-y: auto; overscroll-behavior: contain; padding: 3px 6px 3px 3px; scrollbar-width: thin; scrollbar-color: #484957 #151620; }
+        .episode-list::-webkit-scrollbar { width: 8px; }
+        .episode-list::-webkit-scrollbar-track { background: #151620; border-radius: 99px; }
+        .episode-list::-webkit-scrollbar-thumb { background: #484957; border-radius: 99px; }
+        .episode-item { display: flex; align-items: flex-start; gap: 13px; width: 100%; min-width: 0; padding: 10px; text-align: left; color: #f5f5f7; background: #11121a; border: 1px solid #2c2e3b; border-radius: 12px; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+        .episode-item:hover { background: #1a1218; border-color: #9f343f; }
+        .episode-item:focus-visible { outline: 2px solid #ef4444; outline-offset: 2px; }
+        .episode-item.active { background: rgba(239,68,68,.11); border-color: #ef4444; box-shadow: inset 3px 0 #ef4444; }
+        .episode-still { flex: 0 0 112px; width: 112px; height: 66px; object-fit: cover; background: #1c1d27; border-radius: 8px; }
+        .episode-no-image { display: grid; place-items: center; color: #aeb0bf; font-size: .85rem; font-weight: 800; }
+        .episode-info { display: grid; gap: 5px; min-width: 0; }
+        .episode-info strong { font-size: .94rem; line-height: 1.35; }
+        .episode-info small { color: #a6a8b6; font-size: .78rem; }
+        .episode-info > span { display: -webkit-box; overflow: hidden; color: #c1c2cc; font-size: .82rem; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+        .player-settings { display: grid; gap: 8px; max-width: 420px; margin-top: 22px; }
+        @media (max-width: 900px) {
+          .playback-layout { grid-template-columns: minmax(0, 1fr); }
+          .episode-list { max-height: 55vh; }
+        }
+        @media (max-width: 560px) {
+          .embedded-player { padding: 10px; border-radius: 14px; }
+          .player-frame { border-radius: 9px; }
+          .episode-selector { padding: 12px; }
+          .episode-selector .episode-fields { grid-template-columns: minmax(0, 1fr); max-width: 280px; }
+          .episode-item { gap: 9px; padding: 8px; }
+          .episode-still { flex-basis: 88px; width: 88px; height: 58px; }
+          .episode-info > span { -webkit-line-clamp: 2; }
+        }
+      `}</style>
+    <header className="topbar">
+    <div className="brand">
+    <span>369</span> NKRI TV <small></small>
+    </div>
+    {showPlayer && (
+      <button type="button" onClick={backToSearch}>
+      Back to search
+      </button>
+    )}
+    </header>
+
+    {!showPlayer && (
+      <>
+      <section className="hero">
+      <p className="eyebrow">YOUR PERSONAL MEDIA HUB</p>
+      </section>
+
+      <section className="panel">
+      <div className="tabs">
+      <button
+      className={type === "movie" ? "active" : ""}
+      onClick={() => {
+        setType("movie");
+        setResults([]);
+        setSelected(null);
+        setError("");
+        searchInput.current?.focus();
+      }}
+      >
+      Movies
+      </button>
+
+      <button
+      className={type === "tv" ? "active" : ""}
+      onClick={() => {
+        setType("tv");
+        setResults([]);
+        setSelected(null);
+        setError("");
+        searchInput.current?.focus();
+      }}
+      >
+      TV Shows
+      </button>
+      </div>
+
+      <div className="search-wrap">
+      <form className="searchrow" onSubmit={search}>
+      <input
+      ref={searchInput}
+      value={query}
+      aria-controls="title-search-dropdown"
+      aria-expanded={results.length > 0 || (query.trim().length >= 2 && loading)}
+      onChange={(e) => setQuery(e.target.value)}
+      placeholder={
+        type === "movie"
+        ? "Search movie titles..."
+        : "Search TV show titles..."
+      }
+      aria-label="Search title"
+      />
+
+      <button className="primary" disabled={loading}>
+      {loading ? "Searching..." : "Search"}
+      </button>
+      </form>
+
+      {(results.length > 0 || (query.trim().length >= 2 && (loading || !error))) && (
+        <section id="title-search-dropdown" className="search-dropdown" aria-label="Search results">
+          <div className="search-dropdown-heading">
+            <strong>Search results</strong>
+            <span>{loading ? "Searching…" : `${results.length} titles · use arrow keys to navigate`}</span>
+          </div>
+          {results.length === 0 ? (
+            <div className="search-empty">{loading ? "Finding matches…" : "No matching titles found."}</div>
+          ) : <div className="results-list">
+            {results.map((item, index) => {
+              const name = item.title || item.name || "Untitled";
+              const year = (item.release_date || item.first_air_date || "").slice(0, 4);
+              const image = item.poster_path ? "https://image.tmdb.org/t/p/w185" + item.poster_path : "";
+              const favorite = isFavorite(item, type);
+              return (
+                <div className="dropdown-result-row" key={item.id} style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                  <button
+                    type="button"
+                    className="result"
+                    data-search-result-index={index}
+                    onFocus={() => setFocusedResultIndex(index)}
+                    onClick={() => choose(item, type)}
+                  >
+                    {image ? <img src={image} alt="" /> : <div className="result-poster">NO POSTER</div>}
+                    <span className="result-info">
+                      <strong>{name}</strong>
+                      <small>{year || "Year unknown"} · TMDB {item.id}</small>
+                      <small>Rating: {Number(item.vote_average || 0).toFixed(1)} / 10</small>
+                      <span className="result-overview">{item.overview || "No description available."}</span>
+                    </span>
+                  </button>
+                  <button type="button" className={`favorite-toggle${favorite ? " active" : ""}`} aria-label={favorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`} title={favorite ? "Remove favorite" : "Add to favorites"} onClick={() => toggleFavorite(item, type)}>{favorite ? "★" : "☆"}</button>
+                </div>
+              );
+            })}
+          </div>}
+        </section>
+      )}
+      </div>
+
+      {[
+        { title: "Now Playing", items: nowPlayingMovies, mediaType: "movie" },
+        { title: "Trending Movies", items: trendingMovies, mediaType: "movie" },
+        { title: "Trending TV Shows", items: trendingTvShows, mediaType: "tv" },
+      ].map((shelf) => (
+        <section className="discovery-section" key={shelf.title} aria-label={shelf.title}>
+          <div className="discovery-heading"><h2>{shelf.title}</h2><span className="muted">{shelf.items.length ? `${shelf.items.length} titles` : "Discover"}</span></div>
+          {shelf.items.length ? (
+            <div className="discovery-track">
+              {shelf.items.map((item) => {
+                const itemName = item.title || item.name || "Untitled";
+                const itemYear = (item.release_date || item.first_air_date || "").slice(0, 4);
+                const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : "";
+                const favorite = isFavorite(item, shelf.mediaType);
+                return (
+                  <article className="discovery-card" key={`${shelf.title}-${item.id}`}>
+                    <button type="button" className={`discovery-favorite${favorite ? " active" : ""}`} aria-label={favorite ? `Remove ${itemName} from favorites` : `Add ${itemName} to favorites`} title={favorite ? "Remove favorite" : "Add to favorites"} onClick={() => toggleFavorite(item, shelf.mediaType)}>{favorite ? "★" : "☆"}</button>
+                    <button type="button" className="discovery-poster-button" onClick={() => choose(item, shelf.mediaType)}>
+                      {poster ? <img className="discovery-poster" src={poster} alt={`Poster for ${itemName}`} loading="lazy" /> : <div className="discovery-poster discovery-no-poster">NO POSTER</div>}
+                      <span className="discovery-card-info"><strong>{itemName}</strong><small>{itemYear || "Year unknown"} · ★ {Number(item.vote_average || 0).toFixed(1)}</small></span>
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          ) : featuredLoading ? <div className="discovery-loading">Loading titles…</div> : <div className="discovery-loading">Titles are unavailable right now.</div>}
+        </section>
+      ))}
+
+      <section className="history-section" aria-label={type === "movie" ? "Movie history" : "TV show history"}>
+        <div className="history-heading">
+          <h2>{type === "movie" ? "Recently watched movies" : "Last played TV shows"}</h2>
+          <small className="muted">{history[type].length} saved</small>
+        </div>
+        {history[type].length > 0 ? (
+          <div className="history-grid">
+            {history[type].map((item) => {
+              const itemName = item.title || item.name || "Untitled";
+              const itemDate = (item.release_date || item.first_air_date || "").slice(0, 4);
+              const poster = item.poster_path
+                ? `https://image.tmdb.org/t/p/w342${item.poster_path}`
+                : "";
+              return (
+                <article className="history-card" key={item.id}>
+                  <button
+                    type="button"
+                    className="history-remove"
+                    aria-label={`Remove ${itemName} from history`}
+                    title="Remove from history"
+                    onClick={() => removeFromHistory(type, item.id)}
+                  >
+                    ×
+                  </button>
+                  <button type="button" className={`favorite-star${isFavorite(item, type) ? " active" : ""}`} aria-label={isFavorite(item, type) ? `Remove ${itemName} from favorites` : `Add ${itemName} to favorites`} title={isFavorite(item, type) ? "Remove favorite" : "Add to favorites"} onClick={() => toggleFavorite(item, type)}>{isFavorite(item, type) ? "★" : "☆"}</button>
+                  <button type="button" className="history-open" onClick={() => choose(item, type)}>
+                    {poster ? (
+                      <img className="history-poster" src={poster} alt={`Poster for ${itemName}`} loading="lazy" />
+                    ) : (
+                      <div className="history-poster history-poster-placeholder">NO POSTER</div>
+                    )}
+                    <span className="history-card-info">
+                      <strong>{itemName}</strong>
+                      <small>{itemDate || "Year unknown"} · Rating {Number(item.vote_average || 0).toFixed(1)}/10</small>
+                    </span>
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="history-empty">
+            {type === "movie"
+              ? "Movies you open will appear here for quick access."
+              : "TV shows you open will appear here for quick access."}
+          </div>
+        )}
+      </section>
+
+      {error && <p className="error">{error}</p>}
+
+      <section className="favorites-section" aria-label="Favorites">
+        <div className="history-heading">
+          <h2>Favorites</h2>
+          <small className="muted">{favorites.length} saved</small>
+        </div>
+        {favorites.length ? (
+          <div className="favorite-grid">
+            {favorites.map((item) => {
+              const itemType = item._mediaType === "tv" ? "tv" : "movie";
+              const itemName = item.title || item.name || "Untitled";
+              const itemDate = (item.release_date || item.first_air_date || "").slice(0, 4);
+              const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : "";
+              return (
+                <article className="favorite-card" key={`${itemType}-${item.id}`}>
+                  <button type="button" className="favorite-remove" aria-label={`Remove ${itemName} from favorites`} title="Remove favorite" onClick={() => removeFavorite(item.id, itemType)}>×</button>
+                  <button type="button" className="favorite-open" onClick={() => choose(item, itemType)}>
+                    {poster ? <img className="history-poster" src={poster} alt={`Poster for ${itemName}`} loading="lazy" /> : <div className="history-poster history-poster-placeholder">NO POSTER</div>}
+                    <span className="favorite-info">
+                      <strong>{itemName}</strong>
+                      <small>{itemType === "movie" ? "Movie" : "TV show"} · {itemDate || "Year unknown"} · {Number(item.vote_average || 0).toFixed(1)}/10</small>
+                    </span>
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="history-empty">Use the ☆ button on a title to save it here.</div>
+        )}
+      </section>
+      </section>
+      </>
+    )}
+
+    {showPlayer && selected && (
+      <section className="details player-page">
+      <div className="metadata">
+      {/* Video and TV episodes sit side by side on wider screens. */}
+      <div className="playback-layout">
+      <div className="playback-main">
+      <div className="embedded-player">
+      <div className="embedded-player-heading">
+      <strong>{title}</strong>
+      </div>
+
+      <div className="player-frame">
+      <iframe
+      key={playerUrl}
+      src={playerUrl}
+      title={`VidNest player: ${title}`}
+      allow="autoplay; fullscreen; picture-in-picture; encrypted-media; remote-playback"
+      allowFullScreen
+      />
+      </div>
+
+      </div>
+
+      <div className="player-settings">
+      <label htmlFor="server">VidNest server</label>
+
+      <select
+      id="server"
+      value={server}
+      onChange={(e) => setServer(e.target.value)}
+      >
+      <option value="auto">Automatic</option>
+      <option value="lamda">Lamda</option>
+      <option value="primesrc">PrimeSRC</option>
+      <option value="sigma">Sigma</option>
+      <option value="alfa">Alfa</option>
+      <option value="beta">Beta</option>
+      <option value="gama">Gama</option>
+      <option value="catflix">Catflix</option>
+      <option value="hexa">Hexa</option>
+      <option value="delta">Delta</option>
+      </select>
+      </div>
+      </div>
+
+      {/* Only TV shows display season and episode selectors. */}
+      {type === "tv" && (
+        <section className="episode-selector">
+        <h3>Episodes <span className="muted" style={{ fontSize: "0.8rem", fontWeight: 500 }}>{episodesLoading ? "Loading…" : episodes.length ? `${episodes.length} episodes` : "Choose a season"}</span></h3>
+
+        <div className="episode-fields">
+        <div>
+        <label htmlFor="season">Season</label>
+
+        <select
+        id="season"
+        value={season}
+        onChange={(e) => {
+          setSeason(e.target.value);
+        }}
+        >
+        {seasons.map((item) => (
+          <option
+          key={item.season_number}
+          value={String(item.season_number)}
+          >
+          {item.name ||
+            `Season ${item.season_number}`}
+            {item.episode_count != null
+              ? ` (${item.episode_count} episodes)`
+              : ""}
+              </option>
+        ))}
+        </select>
+        </div>
+        </div>
+
+        <label htmlFor="episode-list">Choose episode</label>
+
+        {episodesLoading && (
+          <p className="muted">Loading episodes...</p>
+        )}
+
+        {!episodesLoading && episodes.length > 0 && (
+          <div
+          className="episode-list"
+          id="episode-list"
+          role="listbox"
+          aria-label="Episodes"
+          >
+          {episodes.map((item) => {
+            const active =
+            String(item.episode_number) === episode;
+
+            return (
+              <button
+              type="button"
+              role="option"
+              aria-selected={active}
+              key={item.id || item.episode_number}
+              className={
+                "episode-item" + (active ? " active" : "")
+              }
+              onClick={() =>
+                setEpisode(String(item.episode_number))
+              }
+              >
+              {item.still_path ? (
+                <img
+                className="episode-still"
+                src={
+                  "https://image.tmdb.org/t/p/w185" +
+                  item.still_path
+                }
+                alt=""
+                loading="lazy"
+                />
+              ) : (
+                <div className="episode-still episode-no-image">
+                E{item.episode_number}
+                </div>
+              )}
+
+              <span className="episode-info">
+              <strong>
+              E{String(item.episode_number).padStart(2, "0")}
+              {" · "}
+              {item.name || "Untitled episode"}
+              </strong>
+
+              <small>
+              {item.air_date || "Air date unknown"}
+              {item.runtime
+                ? ` · ${item.runtime} min`
+                : ""}
+                </small>
+
+                <span>
+                {item.overview ||
+                  "No episode description available."}
+                  </span>
+                  </span>
+                  </button>
+            );
+          })}
+          </div>
+        )}
+
+        {episodes.length > 0 && (
+          <p className="muted" aria-live="polite">
+          Now selected: Season {season}, Episode {episode}
+          </p>
+        )}
+        </section>
+      )}
+      </div>
+
+      {error && <p className="error">{error}</p>}
+      </div>
+      </section>
+    )}
+
+    <footer></footer>
+    </main>
+  );
+}
+
+function yearLabel(date) {
+  return date ? date.slice(0, 4) : "Release date unknown";
+}

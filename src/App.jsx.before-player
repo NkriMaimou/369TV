@@ -1,0 +1,206 @@
+import { useState } from "react";
+import "./App.css";
+
+const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
+
+export default function App() {
+  const [type, setType] = useState("movie");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [season, setSeason] = useState("1");
+  const [episode, setEpisode] = useState("1");
+  const [server, setServer] = useState("auto");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function search(event) {
+    event?.preventDefault();
+    if (!TOKEN) {
+      setError("TMDB token missing. Check .env.local and restart Vite.");
+      return;
+    }
+    if (!query.trim()) {
+      setError("Enter a movie or TV show name.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSelected(null);
+    setResults([]);
+
+    try {
+      const endpoint = type === "movie" ? "movie" : "tv";
+      const url = "https://api.themoviedb.org/3/search/" + endpoint +
+        "?query=" + encodeURIComponent(query.trim()) +
+        "&include_adult=false&language=en-US&page=1";
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: "Bearer " + TOKEN,
+          Accept: "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("TMDB returned HTTP " + response.status);
+      }
+
+      const data = await response.json();
+      setResults(data.results || []);
+      if (!data.results?.length) setError("No matching titles found.");
+    } catch (e) {
+      setError(e.message || "Search failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const title = selected?.title || selected?.name || "";
+  const date = selected?.release_date || selected?.first_air_date || "";
+  const playerUrl = selected
+    ? "https://vidnest.fun/" +
+      (type === "movie"
+        ? "movie/" + selected.id
+        : "tv/" + selected.id + "/" +
+          encodeURIComponent(season) + "/" + encodeURIComponent(episode)) +
+      (server !== "auto" ? "?server=" + encodeURIComponent(server) : "")
+    : "";
+
+  function choose(item) {
+    setSelected(item);
+    setError("");
+  }
+
+  return (
+    <main className="app">
+      <header className="topbar">
+        <div className="brand"><span>V</span> VIDNEST <small>DESKTOP</small></div>
+        <span className="muted">CACHYOS LINUX</span>
+      </header>
+
+      <section className="hero">
+        <p className="eyebrow">YOUR PERSONAL MEDIA HUB</p>
+        <h1>Find it. <span>Play it.</span></h1>
+        <p className="muted">Search by title, choose a result, then open the player.</p>
+      </section>
+
+      <section className="panel">
+        <div className="tabs">
+          <button className={type === "movie" ? "active" : ""}
+            onClick={() => { setType("movie"); setResults([]); setSelected(null); setError(""); }}>
+            Movies
+          </button>
+          <button className={type === "tv" ? "active" : ""}
+            onClick={() => { setType("tv"); setResults([]); setSelected(null); setError(""); }}>
+            TV Shows
+          </button>
+        </div>
+
+        <form className="searchrow" onSubmit={search}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={type === "movie" ? "Search movie titles..." : "Search TV show titles..."}
+            aria-label="Search title"
+          />
+          <button className="primary" disabled={loading} type="submit">
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </form>
+
+        {error && <p className="error">{error}</p>}
+
+        {results.length > 0 && (
+          <section className="results-section">
+            <h2>Search results <small>({results.length})</small></h2>
+            <div className="results-list">
+              {results.map(item => {
+                const name = item.title || item.name || "Untitled";
+                const year = (item.release_date || item.first_air_date || "").slice(0, 4);
+                const image = item.poster_path
+                  ? "https://image.tmdb.org/t/p/w185" + item.poster_path
+                  : "";
+
+                return (
+                  <button
+                    type="button"
+                    className={"result" + (selected?.id === item.id ? " chosen" : "")}
+                    key={item.id}
+                    onClick={() => choose(item)}
+                  >
+                    {image
+                      ? <img src={image} alt="" />
+                      : <div className="result-poster">NO POSTER</div>}
+                    <span className="result-info">
+                      <strong>{name}</strong>
+                      <small>{year || "Year unknown"} · TMDB {item.id}</small>
+                      <small>Rating: {Number(item.vote_average || 0).toFixed(1)} / 10</small>
+                      <span className="result-overview">{item.overview || "No description available."}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </section>
+
+      {selected && (
+        <section className="details">
+          {selected.poster_path
+            ? <img className="poster" src={"https://image.tmdb.org/t/p/w342" + selected.poster_path} alt={title} />
+            : <div className="poster placeholder">NO POSTER</div>}
+          <div className="metadata">
+            <p className="eyebrow">TMDB ID: {selected.id}</p>
+            <h2>{title}</h2>
+            <p className="muted">{yearLabel(date)} · Rating {Number(selected.vote_average || 0).toFixed(1)} / 10</p>
+            <p>{selected.overview || "No description available."}</p>
+
+            {type === "tv" && (
+              <div className="episode-fields">
+                <div>
+                  <label htmlFor="season">Season</label>
+                  <input id="season" type="number" min="1" value={season}
+                    onChange={e => setSeason(e.target.value)} />
+                </div>
+                <div>
+                  <label htmlFor="episode">Episode</label>
+                  <input id="episode" type="number" min="1" value={episode}
+                    onChange={e => setEpisode(e.target.value)} />
+                </div>
+              </div>
+            )}
+
+            <label htmlFor="server">VidNest server</label>
+            <select id="server" value={server} onChange={e => setServer(e.target.value)}>
+              <option value="auto">Automatic</option>
+              <option value="lamda">Lamda</option>
+              <option value="primesrc">PrimeSRC</option>
+              <option value="sigma">Sigma</option>
+              <option value="alfa">Alfa</option>
+              <option value="beta">Beta</option>
+              <option value="gama">Gama</option>
+              <option value="catflix">Catflix</option>
+              <option value="hexa">Hexa</option>
+              <option value="delta">Delta</option>
+            </select>
+
+            <div className="actions">
+              <button className="primary" onClick={() => window.open(playerUrl, "_blank", "noopener,noreferrer")}>
+                Open VidNest player
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <footer></footer>
+    </main>
+  );
+}
+
+function yearLabel(date) {
+  return date ? date.slice(0, 4) : "Release date unknown";
+}

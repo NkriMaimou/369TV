@@ -1,0 +1,39 @@
+
+export async function onRequest({ request, env, next }) {
+  const expectedPassword = env.SITE_PASSWORD;
+
+  if (!expectedPassword) {
+    return new Response("Site password is not configured.", {
+      status: 503,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
+  const authorization = request.headers.get("Authorization") || "";
+  const match = authorization.match(/^Basic\s+(.+)$/i);
+
+  if (match) {
+    try {
+      const decoded = atob(match[1]);
+      const separator = decoded.indexOf(":");
+
+      if (separator !== -1) {
+        const suppliedPassword = decoded.slice(separator + 1);
+
+        if (suppliedPassword === expectedPassword) {
+          return next();
+        }
+      }
+    } catch {
+      // Invalid authentication header.
+    }
+  }
+
+  return new Response("Password required to access 369 NKRI TV.", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": 'Basic realm="369 NKRI TV", charset="UTF-8"',
+      "Cache-Control": "no-store",
+    },
+  });
+}
