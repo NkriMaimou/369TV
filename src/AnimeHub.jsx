@@ -20,7 +20,7 @@ const unitIdOf = (item) => item?.unitId || item?.unit_id || item?.episodeId || i
 
 function AnimeVideo({ stream, title }) {
   const videoRef = useRef(null);
-  const source = stream?.sourceUrl || stream?.url || stream?.src || "";
+  const source = stream?.sourceUrl || stream?.url || stream?.src || stream?.file || "";
   const isHls = Boolean(stream?.isHLS || /\.m3u8(?:$|\?)/i.test(source));
 
   useEffect(() => {
@@ -31,7 +31,10 @@ function AnimeVideo({ stream, title }) {
     const attach = (HlsCtor) => {
       if (disposed) return;
       if (isHls && HlsCtor?.isSupported?.()) {
-        hls = new HlsCtor({ enableWorker: true });
+        hls = new HlsCtor({ enableWorker: true, xhrSetup: (xhr) => { xhr.withCredentials = false; } });
+        hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+          if (data?.fatal) video.dispatchEvent(new CustomEvent("anime-stream-error", { detail: data.type || data.details }));
+        });
         hls.loadSource(source);
         hls.attachMedia(video);
       } else {
@@ -83,12 +86,14 @@ export default function AnimeHub() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [language, setLanguage] = useState("sub");
+  const [playerError, setPlayerError] = useState("");
 
   useEffect(() => {
     setResults([]);
     setSelected(null);
     setEpisodes([]);
     setStream(null);
+    setPlayerError("");
     setMessage("");
   }, [provider]);
 
@@ -146,6 +151,7 @@ export default function AnimeHub() {
     setLoading(true);
     setMessage("");
     setStream(null);
+    setPlayerError("");
     try {
       const [payload, tracksPayload] = await Promise.all([
         resolveAnimeStream(unitId, item.provider || selected?.provider || provider, language),
@@ -158,7 +164,7 @@ export default function AnimeHub() {
         setMessage("The provider did not return a playable stream URL. Try another provider or episode.");
       } else {
         const tracks = Array.isArray(tracksPayload) ? tracksPayload : tracksPayload?.tracks || tracksPayload?.subtitles || tracksPayload?.captions || [];
-        setStream({ ...resolved, subtitles: resolved.subtitles || tracks });
+        setStream({ ...resolved, sourceUrl: resolved.sourceUrl || resolved.url || resolved.src || resolved.file, isHLS: resolved.isHLS ?? resolved.type === "hls" ?? /\\.m3u8(?:$|\\?)/i.test(resolved.sourceUrl || resolved.url || resolved.src || resolved.file || ""), subtitles: resolved.subtitles || tracks });
       }
     } catch (error) {
       setMessage(error.message || "Could not resolve this episode.");
@@ -216,7 +222,7 @@ export default function AnimeHub() {
             </label>
           </div>
           {loading && <p className="anime-hub-message" role="status">Loading…</p>}
-          <div className="anime-hub-episodes">
+          <div className="anime-hub-episodes" role="region" aria-label="Anime episodes" tabIndex={0}>
             {episodes.map((episode, index) => (
               <button key={unitIdOf(episode) || index} type="button" onClick={() => playEpisode(episode)} disabled={loading}>
                 <span>{episode.number ? `Episode ${episode.number}` : episode.title || `Episode ${index + 1}`}</span>
@@ -225,6 +231,7 @@ export default function AnimeHub() {
             ))}
           </div>
           {stream && <AnimeVideo stream={stream} title={titleOf(selected)} />}
+          {playerError && <p className="anime-hub-message" role="alert">Playback error: {playerError}. This provider may require its stream proxy or may be blocking browser playback. Try another provider.</p>}
         </div>
       )}
     </section>
