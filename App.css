@@ -1792,9 +1792,16 @@ body { background: var(--background-start, #090a0f); }
   max-width: none;
 }
 
-
-/* Give homepage shelves breathing room from the viewport edges while keeping the hero full-bleed. */
+ 
+/* Keep the page and hero full-width; inset only the individual homepage shelves. */
 .app:has(.topbar.home-overlay-header) .home-panel {
-  padding-left: clamp(16px, 2.2vw, 36px);
-  padding-right: clamp(16px, 2.2vw, 36px);
+  padding-left: 0;
+  padding-right: 0;
+}
+.app:has(.topbar.home-overlay-header) .home-panel > .section-heading,
+.app:has(.topbar.home-overlay-header) .home-panel > .discovery-track,
+.app:has(.topbar.home-overlay-header) .home-panel > .provider-header,
+.app:has(.topbar.home-overlay-header) .home-panel > .continue-shelf {
+  margin-left: clamp(16px, 2.2vw, 36px);
+  margin-right: clamp(16px, 2.2vw, 36px);
 }
