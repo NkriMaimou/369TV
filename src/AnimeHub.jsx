@@ -164,7 +164,7 @@ export default function AnimeHub() {
         setMessage("The provider did not return a playable stream URL. Try another provider or episode.");
       } else {
         const tracks = Array.isArray(tracksPayload) ? tracksPayload : tracksPayload?.tracks || tracksPayload?.subtitles || tracksPayload?.captions || [];
-        setStream({ ...resolved, sourceUrl: resolved.sourceUrl || resolved.url || resolved.src || resolved.file, isHLS: resolved.isHLS ?? resolved.type === "hls" ?? /\\.m3u8(?:$|\\?)/i.test(resolved.sourceUrl || resolved.url || resolved.src || resolved.file || ""), subtitles: resolved.subtitles || tracks });
+        setStream({ ...resolved, sourceUrl: resolved.sourceUrl || resolved.url || resolved.src || resolved.file, isHLS: resolved.isHLS ?? (resolved.type === "hls" || /\\.m3u8(?:$|\\?)/i.test(resolved.sourceUrl || resolved.url || resolved.src || resolved.file || "")), subtitles: resolved.subtitles || tracks });
       }
     } catch (error) {
       setMessage(error.message || "Could not resolve this episode.");
