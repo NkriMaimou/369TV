@@ -1285,6 +1285,74 @@ body { overflow-x: clip; }
 .theme-swatch-vaporwave { background: linear-gradient(135deg, #ff4fd8 50%, #35e7ff 50%); }
 
 :root[data-theme="amoled"] { color-scheme: dark; }
+:root[data-theme="dark"] {
+  --surface-page: #090a0f;
+  --surface-panel: #13141c;
+  --surface-input: #090a0f;
+  --surface-border: #30313d;
+  --text-main: #f5f5f7;
+  --text-muted: #999ba9;
+}
+:root[data-theme="amoled"] {
+  --surface-page: #000000;
+  --surface-panel: #050505;
+  --surface-input: #000000;
+  --surface-border: #303030;
+  --text-main: #ffffff;
+  --text-muted: #b5b5b5;
+}
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app,
+:root[data-theme="amoled"] body,
+:root[data-theme="amoled"] .app {
+  color: var(--text-main);
+  background: var(--surface-page);
+}
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .info-panel,
+:root[data-theme="dark"] .embedded-player,
+:root[data-theme="dark"] .episode-selector,
+:root[data-theme="dark"] .settings-menu,
+:root[data-theme="dark"] .collection-modal,
+:root[data-theme="dark"] .autocomplete-panel {
+  color: var(--text-main);
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+:root[data-theme="amoled"] .panel,
+:root[data-theme="amoled"] .info-panel,
+:root[data-theme="amoled"] .embedded-player,
+:root[data-theme="amoled"] .episode-selector,
+:root[data-theme="amoled"] .discovery-card,
+:root[data-theme="amoled"] .library-card,
+:root[data-theme="amoled"] .card-info,
+:root[data-theme="amoled"] .settings-menu,
+:root[data-theme="amoled"] .collection-modal,
+:root[data-theme="amoled"] .autocomplete-panel,
+:root[data-theme="amoled"] .result,
+:root[data-theme="amoled"] .empty-state,
+:root[data-theme="amoled"] .recent-searches {
+  color: var(--text-main);
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="amoled"] input,
+:root[data-theme="amoled"] select,
+:root[data-theme="amoled"] textarea {
+  color: var(--text-main);
+  background: var(--surface-input);
+  border-color: var(--surface-border);
+}
+:root[data-theme="dark"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item),
+:root[data-theme="amoled"] button:not(.primary):not(.appearance-choice):not(.accent-option):not(.settings-menu-item) {
+  color: var(--text-main);
+  border-color: var(--surface-border);
+}
+:root[data-theme="dark"] .muted,
+:root[data-theme="amoled"] .muted { color: var(--text-muted); }
 :root[data-theme="light"] body,
 :root[data-theme="light"] .app { color: var(--text-main); background: var(--surface-page); }
 :root[data-theme="light"] .panel,
