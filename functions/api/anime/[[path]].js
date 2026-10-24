@@ -1,4 +1,4 @@
-import { AllmangaProvider, AnikotoProvider, AnimeParadiseProvider, GogoanimeProvider, HttpClient, MegaPlayProvider } from "anime-sdk";
+import { AllmangaProvider, AnikotoProvider, AnimeParadiseProvider, FetchTransport, GogoanimeProvider, HttpClient, MegaPlayProvider } from "anime-sdk";
 
 const allowed = new Set(["allmanga", "animeparadise", "anikoto", "megaplay", "gogoanime"]);
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Cache-Control": "no-store" };
@@ -6,7 +6,7 @@ const memo = new Map();
 let sourceMap;
 function sources() {
   if (sourceMap) return sourceMap;
-  const http = new HttpClient({ timeoutMs: 20000, transport: { fetch: (url, init) => fetch(url, init) } });
+  const http = new HttpClient({ timeoutMs: 20000, transport: new FetchTransport() });
   sourceMap = new Map([
     ["allmanga", new AllmangaProvider(http)], ["animeparadise", new AnimeParadiseProvider(http)],
     ["anikoto", new AnikotoProvider(http)], ["megaplay", new MegaPlayProvider(http)], ["gogoanime", new GogoanimeProvider(http)],
