@@ -5,10 +5,21 @@ export function getAnimeApiUrl() {
 }
 
 async function request(path, { signal } = {}) {
-  const response = await fetch(`${getAnimeApiUrl()}${path}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
+  const baseUrl = getAnimeApiUrl();
+  if (!baseUrl) {
+    throw new Error("The Anime API is not configured for this deployment. Set VITE_ANIME_API_URL to the public URL of your deployed anime-api service, then rebuild the website.");
+  }
+
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      headers: { Accept: "application/json" },
+      signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    throw new Error(`Unable to reach the anime API at ${baseUrl}. Check that the service is running and allows requests from this website.`);
+  }
   if (!response.ok) {
     let detail = "";
     try {
