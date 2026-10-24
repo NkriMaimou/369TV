@@ -277,7 +277,7 @@ footer { padding: 30px 0 10px; text-align: center; color: #777987; font-size: 12
 .continue-note { display: block; padding: 0 10px 10px; color: #9fa1b0; font-size: 11px; line-height: 1.4; }
 .continue-remove { width: calc(100% - 16px); margin: 0 8px 8px; }
 .searchrow { position: relative; }
-.autocomplete-panel { position: absolute; top: calc(100% + 8px); right: 0; width: min(560px, 100%); max-height: min(70vh, 560px); overflow-y: auto; z-index: 300; margin: 0; padding: 8px; background: #101119; border: 1px solid #363846; border-radius: 12px; box-shadow: 0 12px 32px #000b; }
+.autocomplete-panel { position: absolute; top: calc(100% + 8px); left: 50%; right: auto; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow-y: auto; z-index: 300; margin: 0; padding: 8px; background: #101119; border: 1px solid #363846; border-radius: 12px; box-shadow: 0 12px 32px #000b; }
 .autocomplete-heading { display: flex; justify-content: space-between; padding: 5px 8px 8px; color: #c5c6d1; font-size: 12px; font-weight: 750; }
 .autocomplete-heading span { color: #858796; font-weight: 500; }
 .autocomplete-item { display: flex; align-items: center; gap: 11px; width: 100%; padding: 7px; text-align: left; border-color: transparent; background: transparent; }
