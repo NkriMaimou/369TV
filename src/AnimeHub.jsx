@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { getAnimeEpisodes, resolveAnimeStream, searchAnime } from "./animeApi.js";
+import React, { useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
+import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
 import "./AnimeHub.css";
 
 const PROVIDERS = [
@@ -10,8 +11,55 @@ const PROVIDERS = [
   ["gogoanime", "Gogoanime"],
 ];
 
-const titleOf = (item) => item?.title?.english || item?.title?.romaji || item?.title || item?.name || item?.id || "Untitled";
-const posterOf = (item) => item?.thumbnailUrl || item?.poster || item?.image || item?.coverImage?.large || item?.coverImage?.medium || "";
+const titleOf = (item) => {
+  const title = item?.title;
+  return (typeof title === "string" ? title : title?.english || title?.romaji || item?.englishTitle || item?.romajiTitle || item?.name || item?.id || "Untitled");
+};
+const posterOf = (item) => item?.thumbnailUrl || item?.poster || item?.image || item?.coverImage?.large || item?.coverImage?.medium || item?.cover || "";
+const mediaIdOf = (item) => item?.mediaId || item?.media_id || item?.urn || item?.id || "";
+const unitIdOf = (item) => item?.unitId || item?.unit_id || item?.episodeId || item?.urn || item?.id || "";
+
+function AnimeVideo({ stream, title }) {
+  const videoRef = useRef(null);
+  const source = stream?.sourceUrl || stream?.url || stream?.src || "";
+  const isHls = Boolean(stream?.isHLS || /\.m3u8(?:$|\?)/i.test(source));
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !source) return undefined;
+    let hls;
+    if (isHls && Hls.isSupported()) {
+      hls = new Hls({ enableWorker: true });
+      hls.loadSource(source);
+      hls.attachMedia(video);
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = source;
+    } else {
+      video.src = source;
+    }
+    return () => {
+      hls?.destroy();
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [source, isHls]);
+
+  const subtitles = Array.isArray(stream?.subtitles) ? stream.subtitles : [];
+  return <div className="anime-hub-player">
+    <video key={source} ref={videoRef} controls playsInline preload="metadata" crossOrigin="anonymous" aria-label={title || "Anime episode"} />
+    {stream?.quality && <small>Quality: {stream.quality}</small>}
+    {subtitles.length > 0 && <div className="anime-hub-subtitles">
+      {subtitles.map((track, index) => {
+        const url = track?.url || track?.sourceUrl || track?.src;
+        if (!url) return null;
+        return <track key={url + index} kind="subtitles" src={url} srcLang={track.language || track.lang || "und"} label={track.label || track.language || track.lang || `Subtitle ${index + 1}`} default={Boolean(track.default)} />;
+      })}
+      <p>Subtitle tracks are available in the CC menu when supported by the source.</p>
+    </div>}
+    <p className="anime-hub-player-note">If playback fails, try another provider or episode; third-party streams can expire or be blocked by their host.</p>
+  </div>;
+}
 
 export default function AnimeHub() {
   const [query, setQuery] = useState("");
@@ -37,32 +85,39 @@ export default function AnimeHub() {
     if (!query.trim()) return;
     setLoading(true);
     setMessage("");
+    setResults([]);
     setSelected(null);
     setEpisodes([]);
     setStream(null);
     try {
       const payload = await searchAnime(query.trim(), provider);
-      const items = Array.isArray(payload) ? payload : payload?.results || payload?.items || [];
+      const items = Array.isArray(payload) ? payload : payload?.results || payload?.items || payload?.animes || payload?.media || payload?.data || [];
       setResults(items);
       if (!items.length) setMessage("No anime found. Try another title or provider.");
     } catch (error) {
-      setMessage(error.message || "Anime search failed.");
+      const localApi = /localhost:8788/.test(error?.message || "");
+      setMessage(`Anime search failed: ${error.message || "unknown API error"}.${localApi ? " If this is a hosted test website, its VITE_ANIME_API_URL must point to a publicly reachable Anime API URL; localhost points to the visitor's own computer." : " Check that the Anime API is running and reachable from this website."}`);
     } finally {
       setLoading(false);
     }
   }
 
   async function chooseAnime(item) {
+    const mediaId = mediaIdOf(item);
+    if (!mediaId) {
+      setMessage("This result has no media ID. Try another provider.");
+      return;
+    }
     setSelected(item);
     setEpisodes([]);
     setStream(null);
     setLoading(true);
     setMessage("");
     try {
-      const payload = await getAnimeEpisodes(item.id, provider);
-      const items = Array.isArray(payload) ? payload : payload?.units || payload?.episodes || payload?.results || [];
+      const payload = await getAnimeEpisodes(mediaId, item.provider || provider);
+      const items = Array.isArray(payload) ? payload : payload?.units || payload?.episodes || payload?.results || payload?.items || payload?.content || payload?.data || [];
       setEpisodes(items);
-      if (!items.length) setMessage("No episodes were returned for this title.");
+      if (!items.length) setMessage("No episodes were returned for this title by this provider.");
     } catch (error) {
       setMessage(error.message || "Could not load episodes.");
     } finally {
@@ -71,14 +126,28 @@ export default function AnimeHub() {
   }
 
   async function playEpisode(item) {
+    const unitId = unitIdOf(item);
+    if (!unitId) {
+      setMessage("This episode has no unit ID. Go back and try another title/provider.");
+      return;
+    }
     setLoading(true);
     setMessage("");
     setStream(null);
     try {
-      const payload = await resolveAnimeStream(item.id, provider, language);
-      setStream(payload);
-      const video = payload?.type === "video" ? payload.streams?.[0] : payload?.streams?.[0];
-      if (!video?.sourceUrl) setMessage("The provider did not return a playable video stream.");
+      const [payload, tracksPayload] = await Promise.all([
+        resolveAnimeStream(unitId, item.provider || selected?.provider || provider, language),
+        getAnimeTracks(unitId, item.provider || selected?.provider || provider, language).catch(() => null),
+      ]);
+      const video = payload?.type === "video" ? payload?.streams?.[0] : payload?.streams?.[0];
+      const fallback = payload?.sourceUrl || payload?.url || payload?.src || payload?.streamUrl;
+      const resolved = video || (fallback ? { sourceUrl: fallback, isHLS: /\.m3u8(?:$|\?)/i.test(fallback) } : null);
+      if (!resolved?.sourceUrl && !resolved?.url && !resolved?.src) {
+        setMessage("The provider did not return a playable stream URL. Try another provider or episode.");
+      } else {
+        const tracks = Array.isArray(tracksPayload) ? tracksPayload : tracksPayload?.tracks || tracksPayload?.subtitles || tracksPayload?.captions || [];
+        setStream({ ...resolved, subtitles: resolved.subtitles || tracks });
+      }
     } catch (error) {
       setMessage(error.message || "Could not resolve this episode.");
     } finally {
@@ -86,15 +155,13 @@ export default function AnimeHub() {
     }
   }
 
-  const playableStream = stream?.type === "video" ? stream.streams?.[0] : stream?.streams?.[0];
-
   return (
     <section className="anime-hub" aria-labelledby="anime-hub-title">
       <header className="anime-hub-heading">
         <div>
-          <p className="anime-hub-eyebrow">ANIME</p>
+          <p className="anime-hub-eyebrow">369 NKRI TV · ANIME SDK</p>
           <h2 id="anime-hub-title">Anime discovery</h2>
-          <p>Search across multiple anime providers and select an episode to resolve playback.</p>
+          <p>Search anime, browse episodes, and play streams from supported providers.</p>
         </div>
         <label className="anime-hub-provider">
           <span>Source</span>
@@ -114,10 +181,10 @@ export default function AnimeHub() {
       {results.length > 0 && !selected && (
         <div className="anime-hub-results">
           {results.map((item, index) => (
-            <button className="anime-hub-card" key={item.id || index} onClick={() => chooseAnime(item)} type="button">
+            <button className="anime-hub-card" key={mediaIdOf(item) || index} onClick={() => chooseAnime(item)} type="button" disabled={loading}>
               {posterOf(item) ? <img src={posterOf(item)} alt="" loading="lazy" /> : <span className="anime-hub-poster-fallback">ANIME</span>}
               <strong>{titleOf(item)}</strong>
-              {item.year && <small>{item.year}</small>}
+              {(item.year || item.releaseYear) && <small>{item.year || item.releaseYear}</small>}
             </button>
           ))}
         </div>
@@ -125,7 +192,7 @@ export default function AnimeHub() {
 
       {selected && (
         <div className="anime-hub-detail">
-          <button type="button" className="anime-hub-back" onClick={() => { setSelected(null); setEpisodes([]); setStream(null); }}>← Back to results</button>
+          <button type="button" className="anime-hub-back" onClick={() => { setSelected(null); setEpisodes([]); setStream(null); setMessage(""); }}>← Back to results</button>
           <h3>{titleOf(selected)}</h3>
           <div className="anime-hub-episode-tools">
             <label>Audio
@@ -136,25 +203,16 @@ export default function AnimeHub() {
               </select>
             </label>
           </div>
+          {loading && <p className="anime-hub-message" role="status">Loading…</p>}
           <div className="anime-hub-episodes">
             {episodes.map((episode, index) => (
-              <button key={episode.id || index} type="button" onClick={() => playEpisode(episode)} disabled={loading}>
+              <button key={unitIdOf(episode) || index} type="button" onClick={() => playEpisode(episode)} disabled={loading}>
                 <span>{episode.number ? `Episode ${episode.number}` : episode.title || `Episode ${index + 1}`}</span>
                 <small>{episode.title && episode.number ? episode.title : "Play"}</small>
               </button>
             ))}
           </div>
-          {playableStream?.sourceUrl && (
-            <div className="anime-hub-player">
-              {playableStream.isHLS
-                ? <p>Stream resolved. This source is HLS; connect it to the site's HLS-capable player (for example hls.js) to play it here.</p>
-                : <video controls playsInline preload="metadata" src={playableStream.sourceUrl} />}
-              {playableStream.quality && <small>Quality: {playableStream.quality}</small>}
-              {Array.isArray(playableStream.subtitles) && playableStream.subtitles.length > 0 && (
-                <p>Subtitle tracks available: {playableStream.subtitles.length}. Wire these tracks into the player to display them.</p>
-              )}
-            </div>
-          )}
+          {stream && <AnimeVideo stream={stream} title={titleOf(selected)} />}
         </div>
       )}
     </section>
