@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "http://localhost:8788";
+const DEFAULT_API_URL = import.meta.env.DEV ? "http://localhost:8788" : "";
 
 export function getAnimeApiUrl() {
   return (import.meta.env?.VITE_ANIME_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
