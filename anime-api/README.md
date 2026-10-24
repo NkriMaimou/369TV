@@ -1,50 +1,44 @@
 # 369TV anime API
 
-A separate Node.js backend for the 369TV frontend, powered by [anime-sdk](https://github.com/hexxt-git/anime-sdk). It is kept separate from Cloudflare Pages because the SDK's built-in HTTP server uses Node's `http.Server`.
+The production anime API is implemented as a Cloudflare Pages Function in `/functions/api/anime/[[path]].js`. That lets the React/Vite website and anime API run on the same Cloudflare Pages domain, with no always-on Node server or local process required.
 
-## Requirements
+The original `server.mjs` is retained for Node-compatible hosting and local development only.
 
-- Node.js 20 or newer
-- npm
+## Cloudflare Pages deployment
 
-## Run locally
+1. In Cloudflare, open **Workers & Pages** and select the Pages project connected to `NkriMaimou/369TV-backup`.
+2. Confirm the project builds from the repository root, using build command `npm run build` and output directory `dist`.
+3. Under **Settings → Functions → Compatibility flags**, enable `nodejs_compat` for production and preview if required by the package bundle.
+4. Under **Settings → Variables and Secrets**, add `PROXY_SECRET` as a **secret** for both production and preview. Use a long random value (at least 32 random bytes); never commit it to Git or expose it as a `VITE_*` variable.
+5. Save settings and trigger a new deployment from the latest `main` commit.
 
-From this directory:
+Cloudflare Pages connected to GitHub automatically builds and deploys commits. The GitHub code changes alone do not prove a successful Cloudflare deployment; check the Pages deployment log after it runs.
 
-```bash
-npm install
-cp .env.example .env
-npm run dev
-```
+## Verify after deployment
 
-The API will listen on `http://localhost:8788` by default. Check `http://localhost:8788/health`.
+Replace `YOUR-PAGES-DOMAIN` with the actual domain of your Pages project:
 
-Available SDK routes include:
+- `https://YOUR-PAGES-DOMAIN/api/anime/health` should return JSON with `ok: true`.
+- `https://YOUR-PAGES-DOMAIN/api/anime/search?q=Frieren&provider=allmanga` should return search results.
+- Select a result and episode in 369 NKRI TV to test stream resolution and playback. The Cloudflare Function signs proxy URLs and rewrites HLS playlists so segment and subtitle requests can pass through the same origin.
 
-- `GET /search?q=Frieren&provider=allmanga`
-- `GET /content?mediaId=allmanga%3A<media-id>&provider=allmanga`
-- `GET /stream?unitId=allmanga%3A<unit-id>&provider=allmanga`
-- `GET /tracks?unitId=allmanga%3A<unit-id>&provider=allmanga`
-- `GET /meta/search?q=Frieren`
-- `GET /meta/browse?type=trending`
+The frontend now defaults to the same-origin `/api/anime` endpoint. Do not set `VITE_ANIME_API_URL` to `localhost` for a hosted website.
 
-Use the exact URN IDs returned by the API; the provider prefix is part of the ID.
+## Supported API routes
 
-## Frontend connection
+- `GET /api/anime/health`
+- `GET /api/anime/search?q=Frieren&provider=allmanga`
+- `GET /api/anime/content?mediaId=allmanga%3A<media-id>&provider=allmanga`
+- `GET /api/anime/stream?unitId=allmanga%3A<unit-id>&provider=allmanga`
+- `GET /api/anime/tracks?unitId=allmanga%3A<unit-id>&provider=allmanga`
+- `GET /api/anime/proxy?url=<signed-target>&h=<signed-headers>&sig=<signature>` (signed stream proxy only)
 
-Set `VITE_ANIME_API_URL=http://localhost:8788` in the frontend's local `.env`. The frontend helper lives at `../src/animeApi.js` only if you choose to move/copy it into your actual frontend source tree; this repository currently has no package.json or Vite entry configuration, so the new `AnimeHub.jsx` is supplied as a standalone integration component and is not wired into `App.jsx`.
+Use the exact URN IDs returned by the SDK; the provider prefix is part of each ID.
 
-For a deployed frontend, point `VITE_ANIME_API_URL` at the public URL of this Node service. Deploy `anime-api` to a Node-compatible host (for example, Render or Railway); do not deploy this server as a Cloudflare Pages Function.
+## Security and limitations
 
-## Deployment environment
-
-Configure `NODE_ENV=production` and a strong random `PROXY_SECRET` on the backend host. The server refuses to start in production without the secret because the stream proxy must not be left as an unsigned public relay. Set `PORT` only if your host requires it.
-
-If you enable `API_TOKEN`, keep in mind that a secret embedded in a public browser app is not secret. Use it only for private/testing deployments or put authenticated access behind a server-side gateway.
-
-## Security and operational notes
-
-- This service resolves URLs from third-party providers; it does not host a media catalogue or store video files.
-- Keep the SDK updated and monitor provider availability; third-party sites can change.
-- The in-memory cache is intentionally short-lived and is cleared when the process restarts.
-- The SDK's built-in proxy is enabled for browser playback. Do not expose an unsigned proxy in production.
+- The stream proxy accepts only signed HTTPS targets; the HMAC secret stays server-side in Cloudflare.
+- The Worker is not a media host: it proxies provider responses, and availability depends on third-party provider uptime, access rules, and stream expiry.
+- Cloudflare execution time and response limits still apply. Long-running downloads are not part of this Pages Function.
+- If a provider blocks Cloudflare egress or requires unsupported browser/session behavior, playback may still fail for that provider.
+- The original Node server requires Node.js 20 or newer and is not needed for the Cloudflare Pages setup.
