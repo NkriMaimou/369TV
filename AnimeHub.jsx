@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getAnimeEpisodes, resolveAnimeStream, searchAnime } from "./animeApi.js";
+import AnimeVideoPlayer from "./AnimeVideoPlayer.jsx";
 import "./AnimeHub.css";
 
 const PROVIDERS = [
@@ -9,7 +10,6 @@ const PROVIDERS = [
   ["megaplay", "MegaPlay"],
   ["gogoanime", "Gogoanime"],
 ];
-
 const titleOf = (item) => item?.title?.english || item?.title?.romaji || item?.title || item?.name || item?.id || "Untitled";
 const posterOf = (item) => item?.thumbnailUrl || item?.poster || item?.image || item?.coverImage?.large || item?.coverImage?.medium || "";
 
@@ -144,16 +144,9 @@ export default function AnimeHub() {
               </button>
             ))}
           </div>
+          {loading && <p className="anime-hub-message" role="status">Resolving stream…</p>}
           {playableStream?.sourceUrl && (
-            <div className="anime-hub-player">
-              {playableStream.isHLS
-                ? <p>Stream resolved. This source is HLS; connect it to the site's HLS-capable player (for example hls.js) to play it here.</p>
-                : <video controls playsInline preload="metadata" src={playableStream.sourceUrl} />}
-              {playableStream.quality && <small>Quality: {playableStream.quality}</small>}
-              {Array.isArray(playableStream.subtitles) && playableStream.subtitles.length > 0 && (
-                <p>Subtitle tracks available: {playableStream.subtitles.length}. Wire these tracks into the player to display them.</p>
-              )}
-            </div>
+            <AnimeVideoPlayer key={playableStream.sourceUrl} source={playableStream} title={`${titleOf(selected)} · ${playableStream.title || "Episode"}`} />
           )}
         </div>
       )}
