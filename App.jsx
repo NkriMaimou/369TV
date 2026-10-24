@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "./App.css";
 import ExploreHub from "./ExploreHub.jsx";
 import "./ExploreHub.css";
+import AnimeHub from "./AnimeHub.jsx";
 
 const TOKEN = import.meta.env.VITE_TMDB_READ_TOKEN;
 const TMDB = "https://api.themoviedb.org/3";
@@ -1036,6 +1037,7 @@ export default function App() {
             <button type="button" className={`settings-menu-trigger${settingsMenuOpen ? " active" : ""}`} aria-label="Open library menu" aria-haspopup="menu" aria-expanded={settingsMenuOpen} title="Library menu" onClick={() => setSettingsMenuOpen((open) => !open)}><span className="menu-bars" aria-hidden="true"><span></span><span></span><span></span></span></button>
             {settingsMenuOpen && <div className="settings-menu" role="menu" aria-label="Library navigation">
               <button type="button" role="menuitem" className={`settings-menu-item${activeTab === "explore" ? " active" : ""}`} onClick={() => { setActiveTab("explore"); setSettingsMenuOpen(false); setShowPlayer(false); }}>Explore more · TMDB</button>
+              <button type="button" role="menuitem" className={`settings-menu-item${activeTab === "anime" ? " active" : ""}`} onClick={() => { setActiveTab("anime"); setSettingsMenuOpen(false); setShowPlayer(false); window.scrollTo({ top: 0, behavior: "instant" }); }}>Anime</button>
               {BASE_LIBRARY_TABS.map((key) => {
                 const label = key === "watchlist" ? `Watchlist (${watchlist.length})` : key === "favorites" ? `Favorites (${favorites.length})` : LIBRARY_TAB_LABELS[key];
                 return <button type="button" role="menuitem" key={key} className={`settings-menu-item${activeTab === key ? " active" : ""}`} onClick={() => { setActiveTab(key); setSettingsMenuOpen(false); }}>{label}</button>;
@@ -1126,6 +1128,7 @@ export default function App() {
       {collectionModalOpen && <div className="collection-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCollectionModalOpen(false); }}><section className="collection-modal" role="dialog" aria-modal="true" aria-labelledby="new-collection-title"><button type="button" className="collection-modal-close" aria-label="Close" onClick={() => setCollectionModalOpen(false)}>×</button><h2 id="new-collection-title">New collection</h2><p>Name your collection to add it to the library menu.</p><form className="collection-create" onSubmit={createCollection}><input autoFocus value={collectionDraft} onChange={(event) => setCollectionDraft(event.target.value)} placeholder="Collection name" aria-label="Collection name" maxLength={60} required /><div className="collection-modal-actions"><button type="button" onClick={() => setCollectionModalOpen(false)}>Cancel</button><button className="primary" type="submit">Create</button></div></form>{error && <p className="error">{error}</p>}</section></div>}
 
       {activeTab === "explore" && <ExploreHub tmdbFetch={tmdbFetch} choose={choose} selected={selected} type={type} initialPerson={exploreInitialPerson} onClearInitialPerson={() => setExploreInitialPerson(null)} />}
+       {activeTab === "anime" && <AnimeHub />}
       {activeTab === "search" && <>
         <section className="panel home-panel">
 
