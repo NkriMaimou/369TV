@@ -1,5 +1,5 @@
 * { box-sizing: border-box; }
-:root { font-family: system-ui, sans-serif; color: #f5f5f7; background: #090a0f; font-synthesis: none; }
+:root { font-family: system-ui, sans-serif; color: #f5f5f7; background: var(--surface-page, #090a0f); font-synthesis: none; }
 body { margin: 0; min-width: 320px; }
 button, input, select { font: inherit; }
 button { cursor: pointer; padding: 10px 13px; border: 1px solid #343541; border-radius: 9px; background: #20212b; color: white; }
@@ -933,8 +933,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transform: translate3d(100%, 0, 0);
 }
 /* Keep the carousel viewport fixed-width; only its three slide layers move. */
-html, body, #root { max-width: 100%; }
-body { overflow-x: clip; }
+html, body, #root { width: 100%; max-width: 100%; min-width: 0; }
+html { background: var(--surface-page, #090a0f); }
+body { overflow-x: clip; background-color: var(--surface-page, #090a0f); }
 .home-panel { overflow-x: clip; }
 .cinematic-hero {
   position: relative;
