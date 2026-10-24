@@ -29,8 +29,8 @@
 .anime-hub-back { padding:8px 0; border:0; background:transparent; color:var(--text-muted,#ccc)!important; }
 .anime-hub-detail h3 { margin:12px 0; }
 .anime-hub-episode-tools { display:flex; justify-content:flex-end; margin:12px 0; }
-.anime-hub-episodes { display:grid; gap:7px; }
-.anime-hub-episodes button { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; text-align:left; border:1px solid var(--surface-border,var(--anime-border)); border-radius:9px; background:var(--anime-panel); }
+.anime-hub-episodes { display:grid; gap:7px; max-height:min(42vh, 360px); overflow-y:auto; overscroll-behavior:contain; padding:2px 8px 2px 2px; border:1px solid var(--surface-border,var(--anime-border)); border-radius:10px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.3) transparent; }
+.anime-hub-episodes button { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; flex:0 0 auto; text-align:left; border:1px solid var(--surface-border,var(--anime-border)); border-radius:9px; background:var(--anime-panel); }
 .anime-hub-episodes small { color:var(--text-muted,#aaa); }
 .anime-hub-player { margin-top:18px; padding:12px; background:#000; border-radius:12px; }
 .anime-hub-player video { display:block; width:100%; max-height:70vh; background:#000; }
