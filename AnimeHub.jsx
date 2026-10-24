@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAnimeEpisodes, resolveAnimeStream, searchAnime } from "./animeApi.js";
+import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
 import AnimeVideoPlayer from "./AnimeVideoPlayer.jsx";
 import "./AnimeHub.css";
 
@@ -76,9 +76,31 @@ export default function AnimeHub() {
     setStream(null);
     try {
       const payload = await resolveAnimeStream(item.id, provider, language);
-      setStream(payload);
       const video = payload?.type === "video" ? payload.streams?.[0] : payload?.streams?.[0];
-      if (!video?.sourceUrl) setMessage("The provider did not return a playable video stream.");
+      if (!video?.sourceUrl) {
+        setStream(payload);
+        setMessage("The provider did not return a playable video stream.");
+        return;
+      }
+
+      // Some providers return subtitle URLs with the stream; others expose them
+      // through the SDK's dedicated tracks endpoint. A tracks lookup must never
+      // prevent an otherwise playable video from opening.
+      let subtitles = Array.isArray(video.subtitles) ? video.subtitles : [];
+      if (!subtitles.length) {
+        try {
+          const trackPayload = await getAnimeTracks(item.id, provider, language);
+          subtitles = Array.isArray(trackPayload)
+            ? trackPayload
+            : trackPayload?.subtitles || trackPayload?.tracks || trackPayload?.items || [];
+        } catch {
+          // Keep the resolved stream playable when the provider has no tracks endpoint.
+        }
+      }
+      const streams = (payload?.streams || []).map((entry, index) =>
+        index === 0 ? { ...entry, subtitles } : entry
+      );
+      setStream({ ...payload, streams });
     } catch (error) {
       setMessage(error.message || "Could not resolve this episode.");
     } finally {
