@@ -4,12 +4,16 @@
   "version": "1.0.0",
   "description": "Node.js API backend for the 369TV anime integration using anime-sdk",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node --watch server.mjs"
+    "dev": "node --watch server.mjs",
+    "postinstall": "patch-package"
   },
   "dependencies": {
-    "anime-sdk": "^1.1.0"
+    "anime-sdk": "^1.1.0",
+    "patch-package": "^8.0.0"
   }
 }
