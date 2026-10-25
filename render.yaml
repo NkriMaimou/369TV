@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: 369tv-anime-api
+    runtime: node
+    rootDir: anime-api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PROXY_SECRET
+        generateValue: true
