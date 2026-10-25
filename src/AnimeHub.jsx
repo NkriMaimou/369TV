@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AnimeDiscovery from "./AnimeDiscovery.jsx";
 import Hls from "hls.js";
 import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
@@ -27,6 +28,10 @@ function AnimeVideo({ stream, title }) {
   const [status, setStatus] = useState("Preparing stream…");
   const [hlsSubTracks, setHlsSubTracks] = useState([]);
   const [activeSub, setActiveSub] = useState(-1);
+  const [castAvailable, setCastAvailable] = useState(false);
+  const [castConnected, setCastConnected] = useState(false);
+  const [castMessage, setCastMessage] = useState("");
+  const [castBusy, setCastBusy] = useState(false);
 
   const source = stream?.sourceUrl || stream?.url || stream?.src ||
     stream?.file || stream?.streamUrl || stream?.manifestUrl || "";
@@ -66,6 +71,169 @@ function AnimeVideo({ stream, title }) {
         };
       }).filter(Boolean)
     : [];
+
+  useEffect(() => {
+    let context;
+    let stateListener;
+    let cancelled = false;
+
+    const initializeCast = (available) => {
+      if (cancelled || !available || !window.cast?.framework ||
+          !window.chrome?.cast) return;
+
+      try {
+        const framework = window.cast.framework;
+        context = framework.CastContext.getInstance();
+        context.setOptions({
+          receiverApplicationId: window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+          autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        });
+
+        const updateState = () => {
+          if (cancelled) return;
+          const session = context.getCurrentSession();
+          setCastConnected(Boolean(session));
+          setCastAvailable(true);
+        };
+
+        stateListener = updateState;
+        context.addEventListener(
+          framework.CastContextEventType.SESSION_STATE_CHANGED,
+          stateListener
+        );
+        updateState();
+      } catch (err) {
+        setCastMessage("Google Cast could not initialize: " +
+          (err?.message || "unknown error"));
+      }
+    };
+
+    const previousCallback = window.__onGCastApiAvailable;
+    window.__onGCastApiAvailable = (available) => {
+      if (typeof previousCallback === "function") previousCallback(available);
+      initializeCast(available);
+    };
+
+    if (window.cast?.framework && window.chrome?.cast) {
+      initializeCast(true);
+    }
+
+    return () => {
+      cancelled = true;
+      if (context && stateListener && window.cast?.framework) {
+        try {
+          context.removeEventListener(
+            window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+            stateListener
+          );
+        } catch {}
+      }
+      if (window.__onGCastApiAvailable &&
+          window.__onGCastApiAvailable !== previousCallback) {
+        window.__onGCastApiAvailable = previousCallback;
+      }
+    };
+  }, []);
+
+  async function handleCast() {
+    if (!window.cast?.framework || !window.chrome?.cast || !source) {
+      setCastMessage("Google Cast is not available in this browser.");
+      return;
+    }
+
+    setCastBusy(true);
+    setCastMessage("");
+
+    try {
+      const context = window.cast.framework.CastContext.getInstance();
+      if (!context.getCurrentSession()) await context.requestSession();
+
+      const session = context.getCurrentSession();
+      if (!session) throw new Error("No Cast device session was started.");
+
+      const cast = window.chrome.cast;
+      const mediaInfo = new cast.media.MediaInfo(
+        source,
+        isHls ? "application/vnd.apple.mpegurl" :
+          (stream?.mimeType || "video/mp4")
+      );
+      mediaInfo.streamType = cast.media.StreamType.BUFFERED;
+      mediaInfo.metadata = new cast.media.GenericMediaMetadata();
+      mediaInfo.metadata.title = title || "Anime episode";
+
+      if (subtitles.length) {
+        mediaInfo.tracks = subtitles.map((track, index) => {
+          const castTrack = new cast.media.Track(
+            index + 1,
+            cast.media.TrackType.TEXT
+          );
+          castTrack.trackContentId = track.url;
+          castTrack.trackContentType = "text/vtt";
+          castTrack.subtype = cast.media.TextTrackType.SUBTITLES;
+          castTrack.name = track.label;
+          castTrack.language = track.language;
+          return castTrack;
+        });
+      }
+
+      const request = new cast.media.LoadRequest(mediaInfo);
+      if (subtitles.length && activeSub >= 0 && activeSub < subtitles.length) {
+        request.activeTrackIds = [activeSub + 1];
+      }
+
+      const framework = window.cast.framework;
+      const remotePlayer = new framework.RemotePlayer();
+      const remoteController = new framework.RemotePlayerController(remotePlayer);
+
+      const onRemotePlayerChange = () => {
+        const currentSession =
+          framework.CastContext.getInstance().getCurrentSession();
+        const mediaSession = currentSession?.getMediaSession?.();
+
+        console.info("[Anime Cast] Receiver update:", {
+          playerState: remotePlayer.playerState,
+          isMediaLoaded: remotePlayer.isMediaLoaded,
+          mediaSession,
+          mediaInfo: remotePlayer.mediaInfo
+        });
+
+        if (remotePlayer.playerState === cast.media.PlayerState.PLAYING) {
+          setCastMessage("Playing on your Cast device.");
+        } else if (remotePlayer.playerState === cast.media.PlayerState.BUFFERING) {
+          setCastMessage("Receiver is buffering the anime stream…");
+        } else if (remotePlayer.isMediaLoaded) {
+          setCastMessage("Receiver loaded the media; state: " +
+            (remotePlayer.playerState || "unknown"));
+        } else if (mediaSession?.idleReason === cast.media.IdleReason.ERROR) {
+          setCastMessage("Receiver reported a media playback error. Check the [Anime Cast] Receiver update log.");
+        }
+      };
+
+      remoteController.addEventListener(
+        framework.RemotePlayerEventType.ANY_CHANGE,
+        onRemotePlayerChange
+      );
+
+      await session.loadMedia(request);
+      videoRef.current?.pause();
+      setCastConnected(true);
+      setCastMessage("Cast request accepted; waiting for receiver media status…");
+      onRemotePlayerChange();
+    } catch (err) {
+      console.error("[Anime Cast] loadMedia failed:", err);
+      setCastMessage(
+        "Casting failed: " +
+        JSON.stringify({
+          message: err?.message || null,
+          code: err?.code || null,
+          description: err?.description || null,
+          detailedErrorCode: err?.detailedErrorCode || null
+        })
+      );
+    } finally {
+      setCastBusy(false);
+    }
+  }
 
   useEffect(() => {
     const video = videoRef.current;
@@ -207,6 +375,14 @@ function AnimeVideo({ stream, title }) {
   return <div className="anime-hub-player">
     {title && <strong className="anime-sdk-player-title">{title}</strong>}
     {stream?.quality && <small>Quality: {stream.quality}</small>}
+    <div className="anime-sdk-cast-row">
+      <button type="button" onClick={handleCast}
+        disabled={!castAvailable || castBusy}>
+        {castBusy ? "Connecting…" : castConnected ? "Cast / Change device" : "Cast to TV"}
+      </button>
+      {!castAvailable && <small>Google Cast is available in supported browsers when a Cast device is discoverable.</small>}
+    </div>
+    {castMessage && <p className="anime-sdk-cast-message" role="status">{castMessage}</p>}
     <video ref={videoRef} controls playsInline preload="metadata"
       crossOrigin="anonymous" aria-label={title || "Anime episode player"}>
       {subtitles.map((track, index) => <track
@@ -229,7 +405,14 @@ function AnimeVideo({ stream, title }) {
 }
 export default function AnimeHub() {
   const [query, setQuery] = useState("");
-  const [provider, setProvider] = useState("allmanga");
+  const [provider, setProvider] = useState("animeparadise");
+  const [searchHost, setSearchHost] = useState(null);
+
+  useEffect(() => {
+    const host = document.getElementById("anime-header-search-host");
+    setSearchHost(host);
+    return () => setSearchHost(null);
+  }, []);
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
   const [episodes, setEpisodes] = useState([]);
@@ -326,12 +509,33 @@ export default function AnimeHub() {
 
   return (
     <section className="anime-hub" aria-labelledby="anime-hub-title">
+      {searchHost && createPortal(
+        <form className="anime-hub-search anime-header-search-form" onSubmit={handleSearch}>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search anime…"
+            aria-label="Search anime"
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className="primary search-submit"
+            aria-label={loading ? "Searching" : "Search"}
+            title={loading ? "Searching" : "Search"}
+            disabled={loading || !query.trim()}
+          >
+            <span className="search-button-text">
+              {loading ? "Searching…" : "Search"}
+            </span>
+            <span className="search-button-icon" aria-hidden="true">
+              {loading ? "…" : "⌕"}
+            </span>
+          </button>
+        </form>,
+        searchHost
+      )}
       <header className="anime-hub-heading">
-        <div>
-          <p className="anime-hub-eyebrow">369 NKRI TV · ANIME SDK</p>
-          <h2 id="anime-hub-title">Anime discovery</h2>
-          <p>Search anime, browse episodes, and play streams from supported providers.</p>
-        </div>
         <label className="anime-hub-provider">
           <span>Source</span>
           <select value={provider} onChange={(event) => setProvider(event.target.value)}>
@@ -339,11 +543,6 @@ export default function AnimeHub() {
           </select>
         </label>
       </header>
-
-      <form className="anime-hub-search" onSubmit={handleSearch}>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search anime…" aria-label="Search anime" />
-        <button type="submit" disabled={loading || !query.trim()}>{loading ? "Loading…" : "Search"}</button>
-      </form>
 
       {message && <p className="anime-hub-message" role="status">{message}</p>}
 

@@ -1812,3 +1812,772 @@ body { background: var(--background-start, #090a0f); }
   margin-left: clamp(16px, 2.2vw, 36px);
   margin-right: clamp(16px, 2.2vw, 36px);
 }
+
+
+/* Put the existing AnimeHub search in the shared header search position. */
+.anime-header-search-host {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.header-search .anime-header-search-host .anime-header-search-form {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  gap: 7px;
+}
+
+.header-search .anime-header-search-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
+}
+
+.header-search .anime-header-search-form button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 13px;
+}
+
+@media (max-width: 620px) {
+  .header-search .anime-header-search-host {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header-search .anime-header-search-form {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .header-search .anime-header-search-form input {
+    width: 1px;
+    flex: 1 1 auto;
+  }
+
+  .header-search .anime-header-search-form button {
+    flex-shrink: 0;
+  }
+}
+
+/* Match the existing TMDB search layout when AnimeHub search is portaled into the header. */
+@media (max-width: 620px) {
+  .topbar .anime-header-search-host {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar .anime-header-search-form {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 88px 9px 13px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+
+  .topbar .anime-header-search-form button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+}
+
+/* Mobile: make Anime search match the Movies/TV header search. */
+@media (max-width: 620px) {
+  .topbar .anime-header-search-host {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    align-self: stretch;
+  }
+
+  .topbar .anime-header-search-form {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 92px 9px 13px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+
+  /* Compact search icon, positioned before the three-bar menu. */
+  .topbar .anime-header-search-form button {
+    position: absolute;
+    top: 4px;
+    right: 45px;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    overflow: hidden;
+    font-size: 0;
+    line-height: 1;
+  }
+
+  .topbar .anime-header-search-form button::after {
+    content: "⌕";
+    font-size: 25px;
+    line-height: 1;
+  }
+
+  /* Align the library/settings bars with the search field, not above it. */
+  .topbar .settings-menu-wrap {
+    position: absolute;
+    top: 64px;
+    right: 4px;
+    z-index: 8;
+  }
+}
+
+/* Anime uses the same mobile header search layout as Movies and TV. */
+@media (max-width: 620px) {
+  .topbar .anime-header-search-host {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar .anime-header-search-form {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 9px 88px 9px 13px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+
+  .topbar .anime-header-search-form .search-submit {
+    position: absolute;
+    top: 4px;
+    right: 45px;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form .search-button-text {
+    display: none;
+  }
+
+  .topbar .anime-header-search-form .search-button-icon {
+    display: inline;
+  }
+
+  .topbar .settings-menu-wrap {
+    top: 4px;
+    right: 4px;
+  }
+}
+
+/* Keep the mobile header on one row: logo | Anime search | library menu. */
+@media (max-width: 620px) {
+  .topbar {
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    column-gap: 10px;
+    row-gap: 0 !important;
+  }
+
+  .topbar > .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0;
+    align-self: center;
+  }
+
+  .topbar > .header-search {
+    display: contents !important;
+  }
+
+  .topbar .anime-header-search-host {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-self: center;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-right: 84px;
+  }
+
+  .topbar .anime-header-search-form {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    min-height: 40px;
+    padding: 8px 42px 8px 10px;
+    font-size: 13px;
+  }
+
+  .topbar .anime-header-search-form .search-submit {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form .search-button-text {
+    display: none !important;
+  }
+
+  .topbar .anime-header-search-form .search-button-icon {
+    display: inline !important;
+  }
+
+  /* Keep the three-bar menu at the far right of the header. */
+  .topbar .settings-menu-wrap {
+    position: absolute !important;
+    top: 50% !important;
+    right: 4px !important;
+    transform: translateY(-50%);
+    z-index: 10;
+  }
+
+  /* Prevent the header actions from creating an extra row. */
+  .topbar > .topbar-actions {
+    grid-row: 1 !important;
+    min-width: 0;
+  }
+}
+
+/* Unified mobile header: logo | search | library menu */
+@media (max-width: 620px) {
+  .topbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 200;
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: center;
+    column-gap: 8px !important;
+    row-gap: 8px !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  .topbar > .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: center;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* Flatten the search wrapper so its controls can use the header grid. */
+  .topbar > .header-search {
+    display: contents !important;
+  }
+
+  /* Keep the search controls on their own row below the logo/search row. */
+  .topbar .search-header-controls {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .topbar .media-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Movies and TV search: same row as the logo, shrinking as needed. */
+  .topbar .searchrow:not(.anime-header-search-form) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) input {
+    display: block;
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 8px 84px 8px 10px;
+    font-size: 13px;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-submit {
+    position: absolute;
+    top: 2px;
+    right: 42px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-button-text {
+    display: none !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-button-icon {
+    display: inline !important;
+  }
+
+  /* Anime search host occupies exactly the same space as Movies/TV search. */
+  .topbar .anime-header-search-host {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-self: center;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  .topbar .anime-header-search-form {
+    position: relative;
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .topbar .anime-header-search-form input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 40px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 8px 84px 8px 10px;
+    font-size: 13px;
+  }
+
+  .topbar .anime-header-search-form .search-submit {
+    position: absolute;
+    top: 2px;
+    right: 42px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .topbar .anime-header-search-form .search-button-text {
+    display: none !important;
+  }
+
+  .topbar .anime-header-search-form .search-button-icon {
+    display: inline !important;
+  }
+
+  /* The library menu remains at the right edge beside the search button. */
+  .topbar .settings-menu-wrap {
+    position: absolute !important;
+    top: 20px !important;
+    right: 4px !important;
+    z-index: 210;
+    transform: translateY(-50%);
+    margin: 0;
+  }
+
+  .topbar .settings-menu-trigger {
+    flex-shrink: 0;
+  }
+
+  /* Don't let optional header actions push or resize the search field. */
+  .topbar > .topbar-actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Clean mobile header: logo | search field | separate library menu button. */
+@media (max-width: 620px) {
+  .topbar .anime-header-search-host {
+    padding-right: 0 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) input,
+  .topbar .anime-header-search-form input {
+    padding-right: 42px !important;
+  }
+
+  /* Keep the search icon inside the search field at its right edge. */
+  .topbar .searchrow:not(.anime-header-search-form) .search-submit,
+  .topbar .anime-header-search-form .search-submit {
+    right: 2px !important;
+  }
+
+  /* Place the three-bar menu beside the search field, not over it. */
+  .topbar .settings-menu-wrap {
+    position: absolute !important;
+    top: 50% !important;
+    right: 4px !important;
+    z-index: 10000 !important;
+    transform: translateY(-50%);
+    margin: 0;
+  }
+
+  /* Reserve space for the separate menu button. */
+  .topbar .searchrow:not(.anime-header-search-form) {
+    width: auto !important;
+    max-width: calc(100% - 44px) !important;
+  }
+
+  .topbar .anime-header-search-host {
+    width: auto !important;
+    max-width: calc(100% - 44px) !important;
+  }
+
+  .topbar .settings-menu-trigger {
+    position: relative;
+    z-index: 10001;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 10px;
+  }
+
+  /* Keep the open menu above page content, cards and other header layers. */
+  .topbar .settings-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    z-index: 10002 !important;
+    max-height: min(75vh, 600px);
+    overflow-y: auto;
+    isolation: isolate;
+  }
+}
+
+/* Layering safeguard for the library popup on all screen sizes. */
+.topbar .settings-menu-wrap {
+  z-index: 10000;
+}
+
+.topbar .settings-menu {
+  z-index: 10002 !important;
+}
+
+/* Mobile header: shared Movies / TV / Anime layout */
+@media (max-width: 620px) {
+  .topbar {
+    grid-template-columns: max-content minmax(0, 1fr) 38px !important;
+    align-items: center !important;
+  }
+
+  .topbar > .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+  }
+
+  .topbar > .header-search {
+    display: contents !important;
+  }
+
+  .topbar .search-header-controls {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+  }
+
+  /* Keep both search forms in the same grid position */
+  .topbar .searchrow:not(.anime-header-search-form),
+  .topbar .anime-header-search-host {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    justify-self: stretch !important;
+    align-self: center !important;
+    margin: 0 !important;
+  }
+
+  .topbar .anime-header-search-host {
+    padding: 0 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form),
+  .topbar .anime-header-search-form {
+    position: relative !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Reserve room for the search icon inside the input */
+  .topbar .searchrow:not(.anime-header-search-form) input,
+  .topbar .anime-header-search-form input {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-right: 42px !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-submit,
+  .topbar .anime-header-search-form .search-submit {
+    right: 2px !important;
+  }
+
+  /* Settings button occupies its own column beside the search field */
+  .topbar .settings-menu-wrap {
+    position: relative !important;
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    justify-self: end !important;
+    top: auto !important;
+    right: auto !important;
+    transform: none !important;
+    width: 36px !important;
+    height: 40px !important;
+    margin: 0 !important;
+    z-index: 10000 !important;
+  }
+
+  .topbar .settings-menu-trigger {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 40px !important;
+    margin: 0 !important;
+  }
+
+  /* Keep the popup above the header, posters, and other page layers */
+  .topbar .settings-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    z-index: 10002 !important;
+    max-height: min(75vh, 600px) !important;
+    overflow-y: auto !important;
+    isolation: isolate !important;
+  }
+}
+
+/* Final shared header geometry: Anime follows the Movies/TV search layout. */
+@media (max-width: 620px) {
+  .topbar {
+    grid-template-columns: max-content minmax(0, 1fr) 38px !important;
+    align-items: center !important;
+  }
+
+  .topbar > .brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .topbar > .header-search {
+    display: contents !important;
+  }
+
+  .topbar .search-header-controls {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form),
+  .topbar .anime-header-search-host {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-self: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form),
+  .topbar .anime-header-search-form {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) input,
+  .topbar .anime-header-search-form input {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 8px 42px 8px 10px !important;
+    border-radius: 9px !important;
+    font-size: 13px !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-submit,
+  .topbar .anime-header-search-form .search-submit {
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    display: grid !important;
+    place-items: center !important;
+    box-sizing: border-box !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    font-size: 23px !important;
+    line-height: 1 !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-button-text,
+  .topbar .anime-header-search-form .search-button-text {
+    display: none !important;
+  }
+
+  .topbar .searchrow:not(.anime-header-search-form) .search-button-icon,
+  .topbar .anime-header-search-form .search-button-icon {
+    display: inline !important;
+  }
+
+  /* Preserve the working three-bar button in its separate third column. */
+  .topbar .settings-menu-wrap {
+    position: relative !important;
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    justify-self: end !important;
+    top: auto !important;
+    right: auto !important;
+    transform: none !important;
+    width: 36px !important;
+    height: 40px !important;
+    margin: 0 !important;
+    z-index: 10000 !important;
+  }
+}
+
+/* Fix duplicate Anime search icon: use the shared icon span only. */
+@media (max-width: 620px) {
+  .topbar .anime-header-search-form .search-submit::before,
+  .topbar .anime-header-search-form .search-submit::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  .topbar .anime-header-search-form .search-button-icon {
+    display: inline !important;
+    font-size: 23px !important;
+    line-height: 1 !important;
+  }
+}

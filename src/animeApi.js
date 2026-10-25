@@ -54,7 +54,6 @@ export function getAnimeTracks(unitId, provider = "allmanga", language = "sub", 
   return request(`/tracks?${params}`, options);
 }
 
-    
 export function browseAnime(kind = "trending", options = {}) {
   const params = new URLSearchParams({
     provider: "anilist",
@@ -62,6 +61,7 @@ export function browseAnime(kind = "trending", options = {}) {
     catalogType: "ANIME",
     perPage: String(options.perPage || 20),
   });
+  if (options.page) params.set("page", String(options.page));
   if (options.season) params.set("season", options.season);
   if (options.year) params.set("year", String(options.year));
   if (options.genre) params.set("genre", options.genre);

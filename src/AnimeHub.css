@@ -552,3 +552,113 @@
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Horizontal anime shelves: mouse wheel, trackpad and touch-friendly scrolling. */
+.anime-discovery-track {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.28) transparent;
+}
+
+.anime-discovery-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.anime-discovery-track::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.25);
+  border-radius: 999px;
+}
+
+.anime-discovery-card,
+.anime-discovery-skeleton {
+  flex: 0 0 clamp(132px, 15vw, 184px);
+  width: clamp(132px, 15vw, 184px);
+}
+
+.anime-discovery-skeleton {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  scroll-snap-align: start;
+  animation: anime-discovery-pulse 1.35s ease-in-out infinite;
+}
+
+.anime-discovery-skeleton-poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(110deg, var(--card-color, #191923) 25%, rgb(255 255 255 / 8%) 40%, var(--card-color, #191923) 55%);
+  background-size: 220% 100%;
+  border-radius: 11px;
+}
+
+.anime-discovery-skeleton-line {
+  display: block;
+  width: 88%;
+  height: 10px;
+  background: rgb(255 255 255 / 9%);
+  border-radius: 5px;
+}
+
+.anime-discovery-skeleton-line.short {
+  width: 55%;
+  height: 8px;
+}
+
+@keyframes anime-discovery-pulse {
+  0%, 100% { opacity: .72; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 700px) {
+  .anime-discovery-card,
+  .anime-discovery-skeleton {
+    flex-basis: clamp(120px, 34vw, 160px);
+    width: clamp(120px, 34vw, 160px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime-discovery-skeleton { animation: none; }
+  .anime-discovery-track { scroll-behavior: auto; }
+}
+
+
+/* Google Cast controls for the anime player only */
+.anime-sdk-cast-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.anime-sdk-cast-row button {
+  min-height: 40px;
+  padding: 9px 14px;
+  color: #fff;
+  background: var(--accent, #ef4444);
+  border: 0;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.anime-sdk-cast-row small,
+.anime-sdk-cast-message {
+  color: #ddd;
+  font-size: .85rem;
+}
+
+.anime-sdk-cast-message {
+  overflow-wrap: anywhere;
+}
