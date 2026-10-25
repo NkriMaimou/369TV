@@ -45,6 +45,27 @@ function subtitleSource(track) {
   return track?.url || track?.src || track?.file || track?.sourceUrl || track?.source || track?.uri || "";
 }
 
+function isHlsUrl(value) {
+  if (typeof value !== "string" || !value) return false;
+
+  // anime-sdk proxy URLs hide the original .m3u8 URL inside the `url`
+  // query parameter, so checking only the outer URL misses HLS streams.
+  let candidate = value;
+  for (let depth = 0; depth < 4; depth += 1) {
+    try {
+      const parsed = new URL(candidate, typeof window !== "undefined" ? window.location.href : "http://localhost");
+      if (/\\.m3u8$/i.test(parsed.pathname)) return true;
+      const nested = parsed.searchParams.get("url");
+      if (!nested || nested === candidate) break;
+      candidate = nested;
+    } catch {
+      break;
+    }
+  }
+
+  return /\\.m3u8(?:$|[?#&])/i.test(candidate);
+}
+
 function normalizeSubtitle(track, index) {
   const src = subtitleSource(track);
   if (typeof src !== "string" || !/^https?:\/\//i.test(src)) return null;
@@ -68,7 +89,7 @@ export default function AnimeVideoPlayer({ source, title }) {
   const [status, setStatus] = useState("Preparing stream…");
   const src = source?.sourceUrl || source?.url || source?.src || source?.file || source?.streamUrl || source?.manifestUrl || "";
   const isHls = Boolean(source?.isHLS || source?.isHls || String(source?.type || "").toLowerCase() === "hls" ||
-    /mpegurl/i.test(source?.mimeType || "") || /\.m3u8(?:$|[?#])/i.test(src));
+    /mpegurl/i.test(source?.mimeType || "") || isHlsUrl(src));
   const subtitles = useMemo(() => {
     const tracks = source?.subtitles || source?.tracks || source?.captions || [];
     return Array.isArray(tracks) ? tracks.map(normalizeSubtitle).filter(Boolean) : [];
