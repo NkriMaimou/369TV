@@ -2,14 +2,26 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const sdkPath = path.resolve(
+const sdkDir = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-                             "../node_modules/anime-sdk/dist/index.js",
+    "../node_modules/anime-sdk/dist",
 );
+const sdkFiles = ["index.js", "index.cjs"];
 
+for (const sdkFile of sdkFiles) {
+const sdkPath = path.join(sdkDir, sdkFile);
 let source = await readFile(sdkPath, "utf8");
 
 const replacements = [
+    [
+        'req.on("close", () => abortCtrl.abort());',
+        [
+            'req.on("aborted", () => abortCtrl.abort());',
+            'res.on("close", () => {',
+            '  if (!res.writableEnded) abortCtrl.abort();',
+            '});',
+        ].join("\\n"),
+    ],
     [
         "            idMal\n            title {",
         "            idMal\n            genres\n            title {",
@@ -53,7 +65,12 @@ for (const [before, after] of replacements) {
     if (!source.includes(before)) {
         throw new Error(`Cannot patch anime-sdk: expected source text not found: ${before}`);
     }
-    source = source.replace(before, after);
+
+    if (before === 'req.on("close", () => abortCtrl.abort());') {
+        source = source.split(before).join(after);
+    } else {
+        source = source.replace(before, after);
+    }
 }
 
 const requiredFragments = [
@@ -75,5 +92,10 @@ if (source.includes('return `${proxyBase}?url=${encodeURIComponent(abs)}${h}`;')
     throw new Error("anime-sdk HLS rewrite still emits unsigned child URLs.");
 }
 
+if (source.includes('req.on("close", () => abortCtrl.abort());')) {
+    throw new Error(`Unsafe cancellation listener remains in ${sdkFile}`);
+}
+
 await writeFile(sdkPath, source);
-console.log("Applied and verified anime-sdk HLS child-URL signing patch.");
+console.log(`Patched and verified anime-sdk ${sdkFile}.`);
+}
