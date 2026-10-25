@@ -54,7 +54,7 @@ function isHlsUrl(value) {
   for (let depth = 0; depth < 4; depth += 1) {
     try {
       const parsed = new URL(candidate, typeof window !== "undefined" ? window.location.href : "http://localhost");
-      if (/\\.m3u8$/i.test(parsed.pathname)) return true;
+      if (/\.m3u8$/i.test(parsed.pathname)) return true;
       const nested = parsed.searchParams.get("url");
       if (!nested || nested === candidate) break;
       candidate = nested;
@@ -63,7 +63,7 @@ function isHlsUrl(value) {
     }
   }
 
-  return /\\.m3u8(?:$|[?#&])/i.test(candidate);
+  return /\.m3u8(?:$|[?#&])/i.test(candidate);
 }
 
 function normalizeSubtitle(track, index) {
