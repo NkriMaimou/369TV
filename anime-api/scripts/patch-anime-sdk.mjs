@@ -11,6 +11,14 @@ let source = await readFile(sdkPath, "utf8");
 
 const replacements = [
     [
+        "            idMal\n            title {",
+        "            idMal\n            genres\n            title {",
+    ],
+    [
+        '      score: typeof m.averageScore === "number" ? m.averageScore : void 0,\n      isAdult: !!m.isAdult,',
+        '      score: typeof m.averageScore === "number" ? m.averageScore : void 0,\n      genres: m.genres ?? [],\n      isAdult: !!m.isAdult,',
+    ],
+    [
         "function rewriteHls(manifest, baseUrl, proxyBase, hParam) {",
         "function rewriteHls(manifest, baseUrl, proxyBase, hParam, secret) {",
     ],
@@ -49,6 +57,8 @@ for (const [before, after] of replacements) {
 }
 
 const requiredFragments = [
+    "            genres\n            title {",
+    "      genres: m.genres ?? [],",
     "function rewriteHls(manifest, baseUrl, proxyBase, hParam, secret)",
     "rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0, proxySignSecret)",
     "if (secret) parts.push(`sig=${computeProxySignature(abs, hParam, secret)}`)",
