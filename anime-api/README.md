@@ -1,50 +1,19 @@
 # 369TV anime API
 
-A separate Node.js backend for the 369TV frontend, powered by [anime-sdk](https://github.com/hexxt-git/anime-sdk). It is kept separate from Cloudflare Pages because the SDK's built-in HTTP server uses Node's `http.Server`.
+The production anime API is already hosted at https://three69tv-anime-api.onrender.com. The React/Vite frontend defaults to this hosted API, so users do not need to run Node.js locally.
 
-## Requirements
+The backend implementation is `server.mjs`, using `anime-sdk`'s `startServer` with stream proxy support. The Render service must have a long random `PROXY_SECRET` environment variable set for signed proxy requests in production. Keep this value server-side and never expose it as a `VITE_*` variable.
 
-- Node.js 20 or newer
-- npm
+## Deployment
 
-## Run locally
+Deploy backend changes through the existing Render service connected to this repository (or its configured backend root directory). Keep its start command as `npm start` / `node server.mjs`, using Node.js 20 or newer. Do not deploy a second copy of this API as a Cloudflare Pages Function unless deliberately migrating the backend.
 
-From this directory:
+The frontend can remain hosted on Cloudflare Pages. After the frontend changes land on `main`, allow the Pages project to redeploy, or trigger a deployment manually.
 
-```bash
-npm install
-cp .env.example .env
-npm run dev
-```
+## Verification
 
-The API will listen on `http://localhost:8788` by default. Check `http://localhost:8788/health`.
+- API base: https://three69tv-anime-api.onrender.com
+- The frontend's default API URL is set in `src/animeApi.js`.
+- Search, episode retrieval, stream resolution and subtitle retrieval use the backend's `/search`, `/content`, `/stream`, and `/tracks` endpoints.
 
-Available SDK routes include:
-
-- `GET /search?q=Frieren&provider=allmanga`
-- `GET /content?mediaId=allmanga%3A<media-id>&provider=allmanga`
-- `GET /stream?unitId=allmanga%3A<unit-id>&provider=allmanga`
-- `GET /tracks?unitId=allmanga%3A<unit-id>&provider=allmanga`
-- `GET /meta/search?q=Frieren`
-- `GET /meta/browse?type=trending`
-
-Use the exact URN IDs returned by the API; the provider prefix is part of the ID.
-
-## Frontend connection
-
-Set `VITE_ANIME_API_URL=http://localhost:8788` in the frontend's local `.env`. The frontend helper lives at `../src/animeApi.js` only if you choose to move/copy it into your actual frontend source tree; this repository currently has no package.json or Vite entry configuration, so the new `AnimeHub.jsx` is supplied as a standalone integration component and is not wired into `App.jsx`.
-
-For a deployed frontend, point `VITE_ANIME_API_URL` at the public URL of this Node service. Deploy `anime-api` to a Node-compatible host (for example, Render or Railway); do not deploy this server as a Cloudflare Pages Function.
-
-## Deployment environment
-
-Configure `NODE_ENV=production` and a strong random `PROXY_SECRET` on the backend host. The server refuses to start in production without the secret because the stream proxy must not be left as an unsigned public relay. Set `PORT` only if your host requires it.
-
-If you enable `API_TOKEN`, keep in mind that a secret embedded in a public browser app is not secret. Use it only for private/testing deployments or put authenticated access behind a server-side gateway.
-
-## Security and operational notes
-
-- This service resolves URLs from third-party providers; it does not host a media catalogue or store video files.
-- Keep the SDK updated and monitor provider availability; third-party sites can change.
-- The in-memory cache is intentionally short-lived and is cleared when the process restarts.
-- The SDK's built-in proxy is enabled for browser playback. Do not expose an unsigned proxy in production.
+Playback still depends on the stream URL and proxy behavior returned by the Anime SDK provider. If a provider returns a direct HLS playlist, the frontend must attach it to hls.js (or a browser's native HLS playback) and subtitle URLs must be attached as `<track>` elements.

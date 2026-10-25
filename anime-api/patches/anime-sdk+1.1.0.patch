@@ -1,0 +1,29 @@
+--- a/node_modules/anime-sdk/dist/index.js
++++ b/node_modules/anime-sdk/dist/index.js
+@@ -4871,12 +4871,14 @@
+   if (secret) parts.push(`sig=${computeProxySignature(targetUrl, hParam, secret)}`);
+   return `${proxyBase}?${parts.join("&")}`;
+ }
+-function rewriteHls(manifest, baseUrl, proxyBase, hParam) {
+-  const h = hParam ? `&h=${encodeURIComponent(hParam)}` : "";
++function rewriteHls(manifest, baseUrl, proxyBase, hParam, secret) {
+   const wrap = (uri) => {
+     try {
+       const abs = new URL(uri, baseUrl).href;
+-      return `${proxyBase}?url=${encodeURIComponent(abs)}${h}`;
++      const parts = [`url=${encodeURIComponent(abs)}`];
++      if (hParam) parts.push(`h=${encodeURIComponent(hParam)}`);
++      if (secret) parts.push(`sig=${computeProxySignature(abs, hParam, secret)}`);
++      return `${proxyBase}?${parts.join("&")}`;
+     } catch {
+       return uri;
+     }
+@@ -5134,7 +5136,7 @@
+           const text = await upstream.text();
+           if (!text.trim().startsWith("#EXTM3U") && !looksLikeHls) {
+           } else {
+-            const rewritten = rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0);
++            const rewritten = rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0, proxySignSecret);
+             const buf = Buffer.from(rewritten, "utf8");
+             res.writeHead(upstream.status, {
+               ...CORS,
