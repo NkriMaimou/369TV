@@ -1,4 +1,5 @@
 import {
+  AnilistMeta,
   AnikotoProvider,
   AnimeParadiseProvider,
   AllmangaProvider,
@@ -49,11 +50,12 @@ const cache = {
 
 const server = startServer({
   providers,
+  metaProviders: [new AnilistMeta(http)],
   port,
   proxy: true,
   ...(proxySecret ? { proxySignSecret: proxySecret } : {}),
-  ...(process.env.API_TOKEN ? { auth: { token: process.env.API_TOKEN } } : {}),
-  cache,
+                           ...(process.env.API_TOKEN ? { auth: { token: process.env.API_TOKEN } } : {}),
+                           cache,
 });
 
 server.on("listening", () => {
