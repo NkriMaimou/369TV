@@ -13,7 +13,9 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "anime-sdk": "^1.1.0",
+    "anime-sdk": "^1.1.0"
+  },
+  "devDependencies": {
     "patch-package": "^8.0.1"
   }
 }
