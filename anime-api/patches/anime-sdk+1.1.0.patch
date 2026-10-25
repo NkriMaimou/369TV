@@ -1,0 +1,21 @@
+diff --git a/node_modules/anime-sdk/dist/index.js b/node_modules/anime-sdk/dist/index.js
+--- a/node_modules/anime-sdk/dist/index.js
++++ b/node_modules/anime-sdk/dist/index.js
+@@ -1,13 +1,15 @@
+-function rewriteHls(manifest, baseUrl, proxyBase, hParam) {
+-  const h = hParam ? `&h=${encodeURIComponent(hParam)}` : "";
++function rewriteHls(manifest, baseUrl, proxyBase, hParam, secret) {
+   const wrap = (uri) => {
+     try {
+       const abs = new URL(uri, baseUrl).href;
+-      return `${proxyBase}?url=${encodeURIComponent(abs)}${h}`;
++      const parts = [`url=${encodeURIComponent(abs)}`];
++      if (hParam) parts.push(`h=${encodeURIComponent(hParam)}`);
++      if (secret) parts.push(`sig=${computeProxySignature(abs, hParam, secret)}`);
++      return `${proxyBase}?${parts.join("&")}`;
+     } catch {
+       return uri;
+     }
+@@ -1,7 +1,7 @@
+-            const rewritten = rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0);
++            const rewritten = rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0, proxySignSecret);
