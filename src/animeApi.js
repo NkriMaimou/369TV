@@ -53,3 +53,22 @@ export function getAnimeTracks(unitId, provider = "allmanga", language = "sub", 
   const params = new URLSearchParams({ unitId, provider, language });
   return request(`/tracks?${params}`, options);
 }
+
+    
+export function browseAnime(kind = "trending", options = {}) {
+  const params = new URLSearchParams({
+    provider: "anilist",
+    kind,
+    catalogType: "ANIME",
+    perPage: String(options.perPage || 20),
+  });
+  if (options.season) params.set("season", options.season);
+  if (options.year) params.set("year", String(options.year));
+  if (options.genre) params.set("genre", options.genre);
+  return request(`/meta/browse?${params}`, options);
+}
+
+export function getAnimeMetadata(id, options = {}) {
+  const params = new URLSearchParams({ provider: "anilist", id });
+  return request(`/meta/info?${params}`, options);
+}

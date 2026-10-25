@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import AnimeDiscovery from "./AnimeDiscovery.jsx";
+import Hls from "hls.js";
 import { getAnimeEpisodes, getAnimeTracks, resolveAnimeStream, searchAnime } from "./animeApi.js";
 import "./AnimeHub.css";
 
@@ -20,62 +22,211 @@ const unitIdOf = (item) => item?.unitId || item?.unit_id || item?.episodeId || i
 
 function AnimeVideo({ stream, title }) {
   const videoRef = useRef(null);
-  const source = stream?.sourceUrl || stream?.url || stream?.src || stream?.file || stream?.streamUrl || stream?.manifestUrl || "";
-  const isHls = Boolean(stream?.isHLS || stream?.isHls || stream?.type === "hls" || stream?.mimeType?.includes("mpegurl") || /\.m3u8(?:$|\?)/i.test(source));
+  const hlsRef = useRef(null);
+  const [error, setError] = useState("");
+  const [status, setStatus] = useState("Preparing stream…");
+  const [hlsSubTracks, setHlsSubTracks] = useState([]);
+  const [activeSub, setActiveSub] = useState(-1);
+
+  const source = stream?.sourceUrl || stream?.url || stream?.src ||
+    stream?.file || stream?.streamUrl || stream?.manifestUrl || "";
+
+  const isHls = Boolean(
+    stream?.isHLS || stream?.isHls ||
+    String(stream?.type || "").toLowerCase() === "hls" ||
+    /mpegurl/i.test(stream?.mimeType || "") ||
+    (() => {
+      let candidate = source;
+      for (let i = 0; i < 4; i += 1) {
+        try {
+          const u = new URL(candidate, window.location.href);
+          if (/\.m3u8$/i.test(u.pathname)) return true;
+          const nested = u.searchParams.get("url");
+          if (!nested || nested === candidate) break;
+          candidate = nested;
+        } catch { break; }
+      }
+      return /\.m3u8(?:$|[?#&])/i.test(candidate);
+    })()
+  );
+
+  const subtitles = Array.isArray(stream?.subtitles)
+    ? stream.subtitles.map((track, index) => {
+        const url = typeof track === "string" ? track :
+          track?.url || track?.src || track?.file ||
+          track?.sourceUrl || track?.source || track?.uri || "";
+        if (!/^https?:\/\//i.test(url)) return null;
+        return {
+          url,
+          language: String(track?.languageCode || track?.srclang ||
+            track?.lang || track?.language || "und"),
+          label: String(track?.label || track?.language ||
+            track?.lang || `Subtitle ${index + 1}`),
+          isDefault: Boolean(track?.default || track?.isDefault)
+        };
+      }).filter(Boolean)
+    : [];
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !source) return undefined;
-    let hls;
-    let disposed = false;
-    const attach = (HlsCtor) => {
-      if (disposed) return;
-      if (isHls && HlsCtor?.isSupported?.()) {
-        hls = new HlsCtor({ enableWorker: true, xhrSetup: (xhr) => { xhr.withCredentials = false; } });
-        hls.on(HlsCtor.Events.ERROR, (_event, data) => {
-          if (data?.fatal) video.dispatchEvent(new CustomEvent("anime-stream-error", { detail: data.type || data.details }));
-        });
-        hls.loadSource(source);
-        hls.attachMedia(video);
-      } else {
-        video.src = source;
-      }
+
+    let cancelled = false;
+    let hls = null;
+    setError("");
+    setStatus("Preparing stream…");
+    setHlsSubTracks([]);
+    setActiveSub(subtitles.length ? 0 : -1);
+
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+
+    const onVideoError = () => {
+      if (cancelled || !video.error) return;
+      const messages = {
+        1: "Video playback was interrupted.",
+        2: "A network error interrupted playback. The stream or a segment may be unavailable.",
+        3: "The browser could not decode this video.",
+        4: "This video format or source is not supported."
+      };
+      setError(messages[video.error.code] || "The video could not be played.");
+      setStatus("");
     };
-    if (isHls && !video.canPlayType("application/vnd.apple.mpegurl")) {
-      if (window.Hls) attach(window.Hls);
-      else {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js";
-        script.async = true;
-        script.onload = () => attach(window.Hls);
-        script.onerror = () => { if (!disposed) video.src = source; };
-        document.head.appendChild(script);
+    const onLoaded = () => {
+      if (!cancelled) { setError(""); setStatus(""); }
+    };
+    const onPlaying = () => {
+      if (!cancelled) { setError(""); setStatus(""); }
+    };
+
+    video.addEventListener("error", onVideoError);
+    video.addEventListener("loadedmetadata", onLoaded);
+    video.addEventListener("playing", onPlaying);
+
+    async function attach() {
+      try {
+        if (isHls && video.canPlayType("application/vnd.apple.mpegurl") && !Hls.isSupported()) {
+          video.src = source;
+          video.load();
+          return;
+        }
+
+        if (isHls) {
+          if (!Hls.isSupported()) {
+            throw new Error("This browser does not support HLS playback.");
+          }
+
+          hls = new Hls({
+            enableWorker: false,
+            lowLatencyMode: false,
+            backBufferLength: 30
+          });
+          hlsRef.current = hls;
+
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            if (cancelled || !data?.fatal) return;
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              setStatus("Recovering video decoder…");
+              hls.recoverMediaError();
+            } else {
+              setError("HLS playback failed: " +
+                String(data.details || data.type || "unknown error").replaceAll("_", " ") + ".");
+              setStatus("");
+            }
+          });
+
+          hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_event, data) => {
+            if (cancelled) return;
+            const tracks = (data?.subtitleTracks || []).map((track, index) => ({
+              id: track.id ?? index,
+              label: track.name || track.lang || `Subtitle ${index + 1}`
+            }));
+            setHlsSubTracks(tracks);
+            if (tracks.length && subtitles.length === 0) {
+              hls.subtitleTrack = tracks[0].id;
+              setActiveSub(1000 + tracks[0].id);
+            } else {
+              hls.subtitleTrack = -1;
+            }
+          });
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (!cancelled) setStatus("");
+          });
+
+          hls.loadSource(source);
+          hls.attachMedia(video);
+        } else {
+          video.src = source;
+          video.load();
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err?.message || "Could not start video playback.");
+          setStatus("");
+        }
       }
-    } else attach(window.Hls);
+    }
+
+    attach();
+
     return () => {
-      disposed = true;
+      cancelled = true;
+      video.removeEventListener("error", onVideoError);
+      video.removeEventListener("loadedmetadata", onLoaded);
+      video.removeEventListener("playing", onPlaying);
       hls?.destroy();
+      if (hlsRef.current === hls) hlsRef.current = null;
       video.pause();
       video.removeAttribute("src");
       video.load();
     };
   }, [source, isHls]);
 
-  const subtitles = Array.isArray(stream?.subtitles) ? stream.subtitles : [];
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    Array.from(video.textTracks || []).forEach((track, index) => {
+      track.mode = activeSub >= 0 && activeSub < subtitles.length &&
+        index === activeSub ? "showing" : "disabled";
+    });
+    if (hlsRef.current) {
+      hlsRef.current.subtitleTrack = activeSub >= 1000 ? activeSub - 1000 : -1;
+    }
+  }, [activeSub, subtitles.length, hlsSubTracks.length]);
+
+  if (!source) {
+    return <div className="anime-hub-player">
+      <div className="anime-hub-player-placeholder" role="status">
+        <span>▶</span><p>Select an episode to start playback</p>
+      </div>
+    </div>;
+  }
+
   return <div className="anime-hub-player">
-    <video key={source} ref={videoRef} controls playsInline preload="metadata" crossOrigin="anonymous" aria-label={title || "Anime episode"}>
-      {subtitles.map((track, index) => {
-        const url = track?.url || track?.sourceUrl || track?.src;
-        if (!url) return null;
-        return <track key={url + index} kind="subtitles" src={url} srcLang={track.language || track.lang || "und"} label={track.label || track.language || track.lang || `Subtitle ${index + 1}`} default={Boolean(track.default)} />;
-      })}
-    </video>
+    {title && <strong className="anime-sdk-player-title">{title}</strong>}
     {stream?.quality && <small>Quality: {stream.quality}</small>}
-    {subtitles.length > 0 && <p>Subtitle tracks are available in the CC menu when supported by the source.</p>}
-    <p className="anime-hub-player-note">If playback fails, try another provider or episode; third-party streams can expire or be blocked by their host.</p>
+    <video ref={videoRef} controls playsInline preload="metadata"
+      crossOrigin="anonymous" aria-label={title || "Anime episode player"}>
+      {subtitles.map((track, index) => <track
+        key={`${track.url}-${index}`} kind="subtitles" src={track.url}
+        srcLang={track.language} label={track.label} />)}
+    </video>
+    {status && <p role="status">{status}</p>}
+    {error && <p className="anime-sdk-player-error" role="alert">{error}</p>}
+    {(subtitles.length > 0 || hlsSubTracks.length > 0) &&
+      <label className="anime-sdk-subtitle-control">Subtitles{" "}
+        <select value={activeSub} onChange={e => setActiveSub(Number(e.target.value))}>
+          <option value={-1}>Off</option>
+          {subtitles.map((track, index) =>
+            <option key={`external-${track.url}-${index}`} value={index}>{track.label}</option>)}
+          {hlsSubTracks.map(track =>
+            <option key={`hls-${track.id}`} value={1000 + track.id}>{track.label}</option>)}
+        </select>
+      </label>}
   </div>;
 }
-
 export default function AnimeHub() {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("allmanga");
@@ -196,6 +347,10 @@ export default function AnimeHub() {
 
       {message && <p className="anime-hub-message" role="status">{message}</p>}
 
+      {!selected && results.length === 0 && (
+        <AnimeDiscovery provider={provider} onChoose={chooseAnime} />
+      )}
+
       {results.length > 0 && !selected && (
         <div className="anime-hub-results">
           {results.map((item, index) => (
@@ -221,6 +376,8 @@ export default function AnimeHub() {
               </select>
             </label>
           </div>
+          <AnimeVideo stream={stream} title={titleOf(selected)} />
+          {playerError && <p className="anime-hub-message" role="alert">Playback error: {playerError}. This provider may require its stream proxy or may be blocking browser playback. Try another episode.</p>}
           {loading && <p className="anime-hub-message" role="status">Loading…</p>}
           <div className="anime-hub-episodes" role="region" aria-label="Anime episodes" tabIndex={0}>
             {episodes.map((episode, index) => (
@@ -230,8 +387,6 @@ export default function AnimeHub() {
               </button>
             ))}
           </div>
-          {stream && <AnimeVideo stream={stream} title={titleOf(selected)} />}
-          {playerError && <p className="anime-hub-message" role="alert">Playback error: {playerError}. This provider may require its stream proxy or may be blocking browser playback. Try another provider.</p>}
         </div>
       )}
     </section>

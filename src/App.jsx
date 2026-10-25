@@ -1028,6 +1028,7 @@ export default function App() {
       </div>
       <button type="button" className={type === "movie" ? "active" : ""} onClick={() => { setType("movie"); setResults([]); setError(""); }}>Movies</button>
       <button type="button" className={type === "tv" ? "active" : ""} onClick={() => { setType("tv"); setResults([]); setError(""); }}>TV Shows</button>
+      <button type="button" className={activeTab === "anime" ? "active" : ""} aria-current={activeTab === "anime" ? "page" : undefined} onClick={() => { setActiveTab("anime"); setShowPlayer(false); setQuery(""); setResults([]); setError(""); setProviderMenuOpen(false); setGenreMenuOpen(false); }}>Anime</button>
       </div></div>
       <form className="searchrow" onSubmit={search}>
       <input ref={searchInput} value={query} onChange={(e) => { setQuery(e.target.value); setShowAllSearchResults(false); }} placeholder={type === "movie" ? "Search movie titles..." : "Search TV show titles..."} aria-label="Search title" autoComplete="off" />
