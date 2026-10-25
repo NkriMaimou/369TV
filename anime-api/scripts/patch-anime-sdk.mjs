@@ -34,18 +34,35 @@ const replacements = [
 ];
 
 for (const [before, after] of replacements) {
-  if (source.includes(after)) continue;
+  // Empty replacements (removing the obsolete `h` variable) need their own
+  // idempotency check: String.prototype.includes("") is always true.
+  if (after === "") {
+    if (!source.includes(before)) continue;
+  } else if (source.includes(after)) {
+    continue;
+  }
+
   if (!source.includes(before)) {
     throw new Error(`Cannot patch anime-sdk: expected source text not found: ${before}`);
   }
   source = source.replace(before, after);
 }
 
-if (
-  !source.includes("rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0, proxySignSecret)") ||
-  !source.includes("computeProxySignature(abs, hParam, secret)")
-) {
-  throw new Error("anime-sdk HLS signature patch verification failed");
+const requiredFragments = [
+  "function rewriteHls(manifest, baseUrl, proxyBase, hParam, secret)",
+  "rewriteHls(text, targetUrl, proxyBase, hParam ?? void 0, proxySignSecret)",
+  "if (secret) parts.push(`sig=${computeProxySignature(abs, hParam, secret)}`)",
+  "function computeProxySignature(",
+];
+
+for (const fragment of requiredFragments) {
+  if (!source.includes(fragment)) {
+    throw new Error(`anime-sdk HLS signature patch verification failed: missing ${fragment}`);
+  }
+}
+
+if (source.includes('return `${proxyBase}?url=${encodeURIComponent(abs)}${h}`;')) {
+  throw new Error("anime-sdk HLS rewrite still emits unsigned child URLs.");
 }
 
 await writeFile(sdkPath, source);
